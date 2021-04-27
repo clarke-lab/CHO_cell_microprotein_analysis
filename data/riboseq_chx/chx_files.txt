@@ -1,0 +1,8 @@
+ribo_chx_nts_r1 data/raw/chx/ribo_chx_nts_r1.fastq.gz data/preprocessed/chx/ribo_chx_nts_r1.fastq.gz
+ribo_chx_nts_r2 data/raw/chx/ribo_chx_nts_r2.fastq.gz data/preprocessed/chx/ribo_chx_nts_r2.fastq.gz
+ribo_chx_nts_r3 data/raw/chx/ribo_chx_nts_r3.fastq.gz data/preprocessed/chx/ribo_chx_nts_r3.fastq.gz
+ribo_chx_nts_r4 data/raw/chx/ribo_chx_nts_r4.fastq.gz data/preprocessed/chx/ribo_chx_nts_r4.fastq.gz
+ribo_chx_ts_r1 data/raw/chx/ribo_chx_ts_r1.fastq.gz data/preprocessed/chx/ribo_chx_ts_r1.fastq.gz
+ribo_chx_ts_r2 data/raw/chx/ribo_chx_ts_r2.fastq.gz data/preprocessed/chx/ribo_chx_ts_r2.fastq.gz
+ribo_chx_ts_r3 data/raw/chx/ribo_chx_ts_r3.fastq.gz data/preprocessed/chx/ribo_chx_ts_r3.fastq.gz
+ribo_chx_ts_r4 data/raw/chx/ribo_chx_ts_r4.fastq.gz data/preprocessed/chx/ribo_chx_ts_r4.fastq.gz

@@ -11,7 +11,7 @@ conda activate plastid
 conda activate ~/anaconda2/envs/plastid
 metagene generate plastid_analysis/merlin_orfs \
                      --landmark cds_start \
-                     --annotation_files reference_genome/cgr_ensembl_v103_protein_coding.gtf
+                     --annotation_files reference_genome/GCF_003668045.3_CriGri-PICRH-1.0_genomic.gtf
 
 for seqtype in riboseq_chx riboseq_harr riboseq_nodrug
 do
@@ -28,7 +28,7 @@ done
 
 metagene generate plastid_analysis/merlin_orfs_cds_start \
                     --landmark cds_start \
-                    --annotation_files reference_genome/cgr_ensembl_v103_protein_coding.gtf
+                    --annotation_files reference_genome/GCF_003668045.3_CriGri-PICRH-1.0_genomic.gtf
 
 for seqtype in riboseq_chx riboseq_harr riboseq_nodrug
 do
@@ -54,9 +54,9 @@ while read -ra a ;
 do
 $star_path/STAR \
   --outSAMtype BAM SortedByCoordinate \
-  --runThreadN 32 \
+  --runThreadN 16 \
   --outFilterMismatchNmax 2 \
-  --genomeDir reference_genome/star_index_stringtie \
+  --genomeDir reference_genome/star_index_ncbi \
   --readFilesIn  data/$seqtype/preproccessed_data/tRNA_filter/${a[1]}".tRNA.Unmapped.out.mate1" \
   --outFileNamePrefix plastid_analysis/individual_files/$seqtype/mapped/${a[1]} \
   --outFilterMultimapNmax 16 \

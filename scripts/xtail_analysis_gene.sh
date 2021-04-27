@@ -34,9 +34,9 @@ do
   echo ${a[0]}
   $star_path/STAR \
     --outSAMtype BAM SortedByCoordinate \
-    --runThreadN 32 \
+    --runThreadN 8 \
     --outFilterMismatchNmax 2 \
-    --genomeDir reference_genome/star_index_stringtie \
+    --genomeDir reference_genome/star_index_ncbi \
     --readFilesIn  data/rnaseq_se/preprocessed_data/${a[0]} \
     --outFileNamePrefix data/rnaseq_se/mapped/individual/${a[1]} \
     --outFilterMultimapNmax 16 \
@@ -47,9 +47,8 @@ do
     --quantMode TranscriptomeSAM \
     --outSAMattributes All
 
-    mv data/$seqtype/rnaseq_se/individual/${a[1]}Aligned.sortedByCoord.out.bam >\
-   data/$seqtype/mapped/individual/${a[1]}.bam
-
+    mv data/$seqtype/rnaseq_se/individual/${a[1]}Aligned.sortedByCoord.out.bam data/$seqtype/mapped/individual/${a[1]}.bam
+  
    samtools index data/rnaseq_se/mapped/individual/${a[1]}.bam
 done <  data/total_rnaseq_se.txt
 
