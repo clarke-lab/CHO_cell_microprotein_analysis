@@ -1,8 +1,0 @@
-ribo_ff_nts_r1.fastq.gz	nts_r1
-ribo_ff_nts_r2.fastq.gz	nts_r2
-ribo_ff_ts_r1.fastq.gz	ts_r1
-ribo_ff_ts_r2.fastq.gz	ts_r2
-untreated_31_rep3.fastq.gz test1
-untreated_31_rep4.fastq.gz test2
-untreated_37_rep2.fastq.gz test3
-untreated_37_rep4.fastq.gz test4

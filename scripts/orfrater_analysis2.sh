@@ -1,45 +1,48 @@
 #!/bin/bash
 
+mkdir orfrater_analysis
+cd orfrater_analysis
+export PATH=$PATH:/mnt/HDD2/colin/bin/ORF-RATER
+star_path=../../bin/STAR-2.7.2d/bin/Linux_x86_64
+
  grep '; pseudo'  ../reference_genome/GCF_003668045.3_CriGri-PICRH-1.0_genomic.gtf | \
  awk -F'\'t '{print $9}' | awk -F';' '{print $1}' | sed s/gene_id//g | \
  sed s/\"//g | sed 's/[[:space:]]//g'| sort | uniq > pseudogene_gene_ids
-
-   grep -f pseudogene_gene_ids cgr_stringtie_assembly_cds.gtf  | \
- awk -F'\'t '{print $9}' | awk -F';' '{print $1}' | sed s/gene_id//g | \
- sed s/\"//g | sed 's/[[:space:]]//g'| sort | uniq | wc -l
-
 
  grep -f pseudogene_gene_ids ../reference_genome/GCF_003668045.3_CriGri-PICRH-1.0_genomic.gtf | \
  awk -F'\'t '{print $9}' | awk -F';' '{print $2}' | sed s/transcript_id//g | \
  sed s/\"//g | sed 's/[[:space:]]//g'| uniq > pseudogene_transcript_ids
 
 
-export PATH=$PATH:/mnt/HDD2/colin/bin/ORF-RATER
+
 
 # merge and align riboseq datasets for ORF-RATER
-star_path=../bin/STAR-2.7.2d/bin/Linux_x86_64
 
-mkdir orfrater_analysis
+
+
 # take the stringtie assembly and include annotated CDS/start/stop annotation
 # from ENSEMBL
 
-grep -E "CDS|start_codon|stop_codon" ../reference_genome/GCF_003668045.3_CriGri-PICRH-1.0_genomic.gtf > \
-ncbi.cds.annotations.gtf
+# grep -E "CDS|start_codon|stop_codon" ../reference_genome/GCF_003668045.3_CriGri-PICRH-1.0_genomic.gtf > \
+# ncbi.cds.annotations.gtf
 
-cat cgr_stringtie_assembly_raw.ncbi.gtf ncbi.cds.annotations.gtf > \
-cgr_stringtie_assembly_cds.gtf
+# cat cgr_stringtie_assembly_raw.ncbi.gtf ncbi.cds.annotations.gtf > \
+# cgr_stringtie_assembly_cds.gtf
 
-sed -i s/rna-//g cgr_stringtie_assembly_cds.gtf
-sed -i s/gene-//g cgr_stringtie_assembly_cds.gtf
-sed -i 's/[[:blank:]]*$//' cgr_stringtie_assembly_cds.gtf
+# sed -i s/rna-//g cgr_stringtie_assembly_cds.gtf
+# sed -i s/gene-//g cgr_stringtie_assembly_cds.gtf
+# sed -i 's/[[:blank:]]*$//' cgr_stringtie_assembly_cds.gtf
 
-chx_bam=../plastid_analysis/merged_files/mapped/riboseq_chx.ncbi.Aligned.sortedByCoord.out.bam
-nodrug_bam=../plastid_analysis/merged_files/mapped/riboseq_nodrug.ncbi.Aligned.sortedByCoord.out.bam
-harr_bam=../plastid_analysis/merged_files/mapped/riboseq_harr.ncbi.Aligned.sortedByCoord.out.bam
+chx_bam=../data/riboseq_chx/mapped/merged/riboseq_chxAligned.sortedByCoord.out.bam
+nodrug_bam=../data/riboseq_nd/mapped/merged/riboseq_ndAligned.sortedByCoord.out.bam
+harr_bam=../data/riboseq_harr/mapped/merged/riboseq_harrAligned.sortedByCoord.out.bam
 fasta=../reference_genome/GCF_003668045.3_CriGri-PICRH-1.0_genomic.fna
-
  
-for source in reference stringtie
+samtools index $chx_bam
+samtools index $nodrug_bam
+samtools index $harr_bam
+
+for source in reference 
 do
   if [[ $source -ge "reference" ]]
     then
@@ -60,7 +63,7 @@ do
 prune_transcripts.py \
 --inbed  cgr.orfrater.annotation.$source.bed \
 --summarytable tid_removal_summary.txt \
--p 32 \
+-p 16 \
 --minlen 28 \
 --maxlen 31 \
 -v $fasta \
@@ -85,7 +88,7 @@ psite_trimmed.py $chx_bam \
 --subdir chx \
 --tallyfile tallies.txt \
 --cdsbed cgr.orfrater.annotation.$source.bed \
--p 25 \
+-p 16 \
 -v \
 --force > psite_chx.$source.log
 
@@ -95,7 +98,7 @@ psite_trimmed.py $nodrug_bam \
 --subdir no_drug \
 --tallyfile tallies.txt \
 --cdsbed cgr.orfrater.annotation.$source.bed \
--p 32 \
+-p 16 \
 -v \
 --force > psite_nogrug.log
 
@@ -105,7 +108,7 @@ psite_trimmed.py $harr_bam \
 --subdir harr \
 --tallyfile tallies.txt \
 --cdsbed cgr.orfrater.annotation.$source.bed \
--p 32 \
+-p 16 \
 -v \
 --force > psite_harr.$source.log
 
@@ -115,7 +118,7 @@ regress_orfs.py $harr_bam \
 --orfstore orf.h5 \
 --inbed transcripts.bed \
 --regressfile regression.h5 \
--p 32 \
+-p 16 \
 -v \
 --startcount 1 \
 --force > regress_start.$source.log
@@ -126,7 +129,7 @@ regress_orfs.py $chx_bam  \
 --inbed transcripts.bed \
 --restrictbystarts harr \
 --startcount 1 \
--p 32 \
+-p 16 \
 -v \
 --force > chx_regress_stop.$source.log
 
@@ -136,7 +139,7 @@ regress_orfs.py $nodrug_bam \
 --inbed transcripts.bed \
 --restrictbystarts harr \
 --startcount 1 \
--p 32 \
+-p 16 \
 -v \
 --force > nodrug_regress_stop.$source.log
 
@@ -146,12 +149,15 @@ chx \
 no_drug \
 --orfstore orf.h5 \
 --ratingsfile orfratings.h5 \
--p 32 \
+-p 16 \
 --CSV rate_regression.$source.csv \
 -v \
 --force > rate.$source.log
 
 make_orf_bed.py --minlen 7 --force --outbed orfrater_predictions.$source.bed
+
+/mnt/HDD2/colin/bin/kentUtils/bin/linux.x86_64/bedToGenePred orfrater_predictions.$source.bed stdout | \
+/mnt/HDD2/colin/bin/kentUtils/bin/linux.x86_64/genePredToGtf file stdin orfrater_predictions.$source.gtf
 
 done
 

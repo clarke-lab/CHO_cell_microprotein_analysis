@@ -1,8 +1,8 @@
 ribo_harr_nts_r1.fastq.gz	nts_r1
 ribo_harr_nts_r2.fastq.gz	nts_r2
+ribo_harr_nts_r3.fastq.gz	nts_r3
+ribo_harr_nts_r4.fastq.gz	nts_r4
 ribo_harr_ts_r1.fastq.gz	ts_r1
 ribo_harr_ts_r2.fastq.gz	ts_r2
-harr_31_rep3.fastq.gz test1
-harr_31_rep4.fastq.gz test2
-harr_37_rep2.fastq.gz test3
-harr_37_rep4.fastq.gz test4
+ribo_harr_ts_r3.fastq.gz	ts_r3
+ribo_harr_ts_r4.fastq.gz	ts_r4
