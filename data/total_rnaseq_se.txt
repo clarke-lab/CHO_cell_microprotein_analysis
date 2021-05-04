@@ -1,8 +1,0 @@
-rnaseq_nts_r1.fastq.gz	nts_r1
-rnaseq_nts_r2.fastq.gz	nts_r2
-rnaseq_nts_r3.fastq.gz	nts_r3
-rnaseq_nts_r4.fastq.gz	nts_r4
-rnaseq_ts_r1.fastq.gz	ts_r1
-rnaseq_ts_r2.fastq.gz	ts_r2
-rnaseq_ts_r3.fastq.gz	ts_r3
-rnaseq_ts_r4.fastq.gz	ts_r4
