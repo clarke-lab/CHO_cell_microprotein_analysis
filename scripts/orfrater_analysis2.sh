@@ -16,6 +16,7 @@ star_path=../../bin/STAR-2.7.2d/bin/Linux_x86_64
 
 
 
+
 # merge and align riboseq datasets for ORF-RATER
 
 
@@ -154,7 +155,7 @@ no_drug \
 -v \
 --force > rate.$source.log
 
-make_orf_bed.py --minlen 7 --force --outbed orfrater_predictions.$source.bed
+make_orf_bed.py --minlen 10 --force --outbed orfrater_predictions.$source.bed
 
 /mnt/HDD2/colin/bin/kentUtils/bin/linux.x86_64/bedToGenePred orfrater_predictions.$source.bed stdout | \
 /mnt/HDD2/colin/bin/kentUtils/bin/linux.x86_64/genePredToGtf file stdin orfrater_predictions.$source.gtf
@@ -162,8 +163,8 @@ make_orf_bed.py --minlen 7 --force --outbed orfrater_predictions.$source.bed
 done
 
 
-/mnt/HDD2/colin/bin/kentUtils/bin/linux.x86_64/bedToGenePred orfrater_predictions.reference.bed stdout | \
-/mnt/HDD2/colin/bin/kentUtils/bin/linux.x86_64/genePredToGtf file stdin orfrater_predictions.gtf
+/mnt/HDD2/colin/bin/kentUtils/bin/linux.x86_64/bedToGenePred orfrater_analysis/orfrater_predictions.reference.bed stdout | \
+/mnt/HDD2/colin/bin/kentUtils/bin/linux.x86_64/genePredToGtf file stdin orfrater_analysis/orfrater_predictions.gtf
 
 grep -f novel_proteoforms.txt orfrater_predictions.reference.bed > novel_proteoforms.bed 
 # make a nucleotide fasta for the CDS gregion - from the orf-rater

@@ -1,6 +1,6 @@
 import numpy
 from plastid import *
-transcript_reader = GTF2_TranscriptAssembler("orfrater_analysis/orfrater_predictions.gtf")
+transcript_reader = GTF2_TranscriptAssembler("orfrater_analysis/orfrater_predictions.reference.gtf")
 fout_start = open("diff_translation_analysis/orf_annotation/orfrater_start_codon_masks.bed","w")
 fout_stop = open("diff_translation_analysis/orf_annotation/orfrater_stop_codon_masks.bed","w")
 

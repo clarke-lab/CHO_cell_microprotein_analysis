@@ -27,12 +27,3 @@ while read -ra a ; do
 rm -r $OUT_DIR/paired $OUT_DIR/unpaired
 
 # 1. Total RNASeq (Single-end)
-mkdir data/rnaseq_se/preprocessed_data/
-while read -ra a ;
- do
-     # run cutadapt
-     cutadapt  -q 30 -m 20 --report=full \
-     -a AGATCGGAAGAGCACACGTCT -j 32 \
-     -o data/rnaseq_se/preprocessed_data/${a[0]} data/rnaseq_se/raw_data/${a[0]}
-
- done < data/total_rnaseq_se.txt

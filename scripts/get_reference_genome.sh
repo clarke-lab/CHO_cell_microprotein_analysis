@@ -11,6 +11,7 @@ wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/003/668/045/GCF_003668045.3_Cr
 
 gunzip reference_genome/*.gz
 
+star_path=../bin/STAR-2.7.8a/bin/Linux_x86_64
 mkdir reference_genome/star_index_ncbi
 $star_path/STAR --runThreadN 16 \
      --runMode genomeGenerate \

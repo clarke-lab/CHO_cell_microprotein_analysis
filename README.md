@@ -12,21 +12,23 @@
 ./scripts/get_raw_data.sh
 ```
 ## Download the Chinese hamster genome sequence and annotation
-The following code downloads the CGR-PICR genome from Ensembl v103
+Get the reference genome and create a STAR index for mapping
 ```bash
 ./get_reference_genome.sh
 ```
 
-## Preprocess sequencing data
+## Preprocess and map sequencing data
+
 ```bash
+# Trim adapters from the Cycoheximide, Harringtonine and No drug Ribosome footprint profiling data
 ./preprocess_rnaseq_pe.sh
 ./preprocess_riboseq.sh
 ```
 
-# 1. Stringtie Transcriptome Assembly
-## Preprocess paired end RNASeq data
-```bash
-./preprocess_rnaseq_pe.sh
+## ORF-RATER 
+
+docker pull 
+./scripts/orfrater_analysis.sh
 ```
 
 # 2. Gene level differences in translation efficiency

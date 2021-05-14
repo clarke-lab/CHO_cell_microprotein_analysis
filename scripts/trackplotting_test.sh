@@ -1,4 +1,35 @@
-mkdir -p publication_results/track_plotting/bedgraph/merged
+mkdir -p alignment_tracks/merged
+
+bg_dir=alignment_tracks/merged
+
+chx_bam=data/riboseq_chx/mapped/merged/riboseq_chx.bam
+nd_bam=data/riboseq_nd/mapped/merged/riboseq_nd.bam
+harr_bam=data/riboseq_harr/mapped/merged/riboseq_harr.bam
+
+harr_transcript_bam=data/riboseq_harr/mapped/merged/riboseq_harrAligned.toTranscriptome.out.sorted.bam
+bamCoverage -b $harr_transcript_bam -o $bg_dir/harr.p.site.transcriptome.bedgraph \
+--outFileFormat bedgraph --Offset 13 -bs 1 -p 70 --normalizeUsing BPM
+
+bamCoverage -b $nd_bam -o $bg_dir/nd.p.site.bigwig \
+--outFileFormat bigwig --Offset 13 -bs 1 -p 60 --normalizeUsing BPM
+
+bigwigCompare --bigwig1 $bg_dir/harr.p.site.bigwig --bigwig2 $bg_dir/nd.p.site.bigwig \
+--outFileName $bg_dir/nd.harr.p.site.compared.bigwig --outFileFormat bigwig \
+--numberOfProcessors 60 -bs 1 --skipNonCoveredRegions --skipZeroOverZero --operation subtract
+
+bamCoverage -b $chx_bam -o $bg_dir/chx.p.site.bigwig \
+--outFileFormat bigwig --Offset 13 -bs 1 -p 60 --normalizeUsing BPM
+
+svist4get \
+-fa reference_genome/GCF_003668045.3_CriGri-PICRH-1.0_genomic.fna \
+-gtf reference_genome/GCF_003668045.3_CriGri-PICRH-1.0_genomic.gtf  \
+-bg $bg_dir/harr.p.site.bedgraph \
+-bl 'Harr Ribo-Seq (P-site)' \
+-g Cert1_1 \
+-hi \
+-bul max \
+-o test.png
+
 kent_path=../bin/kentUtils/bin/linux.x86_64
 
 bg_dir=publication_results/track_plotting/bedgraph/merged
