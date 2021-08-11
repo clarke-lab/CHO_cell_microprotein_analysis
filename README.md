@@ -17,28 +17,36 @@ Get the reference genome and create a STAR index for mapping
 ./get_reference_genome.sh
 ```
 
-## Preprocess and map sequencing data
-
+## Preprocessing and mapping
 ```bash
 # Trim adapters from the Cycoheximide, Harringtonine and No drug Ribosome footprint profiling data
 ./preprocess_rnaseq_pe.sh
 ./preprocess_riboseq.sh
 ```
 
-## ORF-RATER 
+## Offset determination
+```
 
-docker pull 
+```
+
+## Idenfication of novel CHO cell ORFs
+```bash
 ./scripts/orfrater_analysis.sh
 ```
 
-# 2. Gene level differences in translation efficiency
+## Transcript level quantitation
+
 ```bash
-./xtail_analysis_gene.sh
 ```
 
-# 3. Translation initiation site identification
+# 2. Gene level quantitation
+
+To enable the identification of differential translation between the NTS and TS conditions the mapped Ribo-seq and RNA-seq CDS counts are determined. For the Riboeq
+
 ```bash
 
 ```
 
 # 1. Differential Translation Analysis
+```bash
+```
