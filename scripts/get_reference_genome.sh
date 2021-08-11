@@ -1,4 +1,8 @@
 #!/bin/bash
+#### Description: Downloads the PICRH genome  
+####              from NCBI  
+#### 
+#### Written by: NIBRT Clarke Lab. - colin.clarke@nibrt.ie
 
 # retrieve the PICR reference genome and annotation from ensembl
 mkdir -p reference_genome

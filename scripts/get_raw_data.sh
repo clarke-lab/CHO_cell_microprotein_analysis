@@ -1,18 +1,17 @@
 #!/bin/bash
+#### Description: Downloads the RIBO-seq and RNA-seq data 
+####              from ENA  
+#### 
+#### Written by: NIBRT Clarke Lab. - colin.clarke@nibrt.ie 
 
-# download the raw data from public repository
-
-# 1. Total RNASeq (Paired-end)
-mkdir -p data/rnaseq_pe/raw_data
-
-# 2. Total RNASeq (Single-end)
+# 1. Total RNASeq (Single-end)
 mkdir -p data/rnaseq_se/raw_data
 
-# 3. CHX riboseq
+# 2. CHX riboseq
 mkdir -p data/riboseq_chx/raw_data
 
-# 4. Harr riboseq
+# 3. Harr riboseq
 mkdir -p data/riboseq_harr/raw_data
 
-# 5. No drug riboseq
+# 4. No drug riboseq
 mkdir -p data/riboseq_nd/raw_data
