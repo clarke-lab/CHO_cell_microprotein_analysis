@@ -1,8 +1,9 @@
 import numpy
-from plastid import *
-transcript_reader = GTF2_TranscriptAssembler(open("diff_translation_analysis/diff_translation.gtf"))
-fout_start = open("diff_translation_analysis/start_codon_masks.bed","w")
-fout_stop = open("diff_translation_analysis/stop_codon_masks.bed","w")
+from plastid import * 
+
+transcript_reader = GTF2_TranscriptAssembler(open("quantitation/gene/diff_translation.gtf"))
+fout_start = open("quantitation/plastid_reference/gene/start_codon_masks.bed","w")
+fout_stop = open("quantitation/plastid_reference/gene/stop_codon_masks.bed","w")
 
 for feature in transcript_reader:
   cds = feature.get_cds()
@@ -14,7 +15,6 @@ for feature in transcript_reader:
   else: # for other proteins the first 15 and last 5 codons are not counted 
       start_codon_mask = list(cds.get_subchain(0,45))
       stop_codon_mask  = list(cds.get_subchain(cds.length-15,cds.length))
-
   for mask in start_codon_mask:
      fout_start.write(SegmentChain(mask).as_bed())
   for mask in stop_codon_mask:
