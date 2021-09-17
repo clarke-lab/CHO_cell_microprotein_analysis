@@ -6,8 +6,7 @@ Castro-Rivadeneyra *et. al*
 
 The publication is freely availiable here:
 
-## Preparation
-### Dependencies
+## 1. Dependencies
   * cutadapt 1.18
   * trimmomatic-0.36
   * STAR-2.7.8a
@@ -15,17 +14,19 @@ The publication is freely availiable here:
   * Docker
   * Plastid 
   * R
-  * DESeq2
+  * DESeq2 
+  * samtools
 
-   
-### Dowload the raw RiboSeq and RNASeq data
+
+
+## 2. Dowload the raw RiboSeq and RNASeq data
 
 To be completed when data is uploaded to SRA and ENA
 
 ```bash
 ./scripts/get_raw_data.sh
 ```
-### Reference genome
+## 3. Reference genome
 
 Download the PICR-H reference genome from NCBI and create a STAR index for mapping
 
@@ -35,18 +36,21 @@ mkdir -p reference_genome
 # NCBI location
 url=https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/003/668/045/
 
-# get the sequence and annotation
+# get the sequence, annotation and feature table
 wget "$url"GCF_003668045.3_CriGri-PICRH-1.0/GCF_003668045.3_CriGri-PICRH-1.0_genomic.fna.gz \
 -P reference_genome
 
 wget "$url"/GCF_003668045.3_CriGri-PICRH-1.0/GCF_003668045.3_CriGri-PICRH-1.0_genomic.gtf.gz \
 -P reference_genome
 
+wget "$url"/GCF_003668045.3_CriGri-PICRH-1.0/GCF_003668045.3_CriGri-PICRH-1.0_feature_table.txt \
+-P reference_genome
+
 # extract
 gunzip reference_genome/*.gz
 ```
 
-### Create reference index
+## 4. Create reference index
 A STAR index is created to map the Ribo-seq and RNA-seq data
 
 ```bash
@@ -66,23 +70,26 @@ $star_path/STAR --runThreadN 16 \
      --sjdbGTFfile reference_genome/GCF_003668045.3_CriGri-PICRH-1.0_genomic.gtf
 ```
 
-### Preprocessing and mapping
-The raw sequencing data for the Ribo-seq and RNASeq is preprocessed to remove adapter sequence. In the case of the Ribo-seq data reads aligning to rRNA, snoRNA or tRNA are removed and only read lengths (28-31nt) where the expected peridocity is observed for 60% of reads were retained.
-
+## 5. RPF and read mapping
+This script preprocesses the raw sequencing data. For all data types the adapters are removed as well as low quality bases. 
+For Ribo-seq data contaminating RNA species (rRNA, tRNA and snoRNA) are removed following mapping to individual indexes, 
+remaining reads are filtered based on length with only those within the expected RPF range (28-31nt) retained. Finally the reads from all replicate 
 ```bash
-# Trim adapters from the Cycoheximide, Harringtonine and No drug Ribosome footprint profiling data
-./preprocess_rnaseq_pe.sh
-./preprocess_riboseq.sh
+./scripts/preprocess_reads.sh
+
+# count the reads removed by filtering as well as the final RPFs
+./scripts/
 ```
 
-### Offset determination
-Calculation of the P-site offset for RPFs for the merged and individual samples.  
+## 6. Finding the RPF Offset 
+Calculation of the P-site offset and analysis of triplet periodicty for RPFs for the merged and individual samples.  
 ```bash
-./scripts/offset_determination.sh
+./scripts/p-site_identification.sh
 ```
 
-## ORF-RATER analysis
+## 7. ORF identification
 
+### Get the docker image
 We have built a docker image with ORF-RATER and required packages to ensure future compatability
 
 Download the ORF-RATER docker image 
@@ -90,19 +97,51 @@ Download the ORF-RATER docker image
 docker pull clarkelab/orfrater
 ```
 
-### Run ORF-RATER 
+### Identify CHO cell ORFs 
 
 The merged BAM files for Harringtone, cycloheximide and no-drug Ribo-seq as well as the Chinese hamster 
 refercen annotation are inputted to ORF-RATER
 
 ```bash
-./scripts/orfrater_analysis.sh
+./scripts/identify_ORFs.sh
 ```
-### ORF-RATER filtering
+### Filter ORFs
 
-## Transcript level quantitation
+Filter the ORF-RATER output to remove: 
+  * ORFs < 5aa & ORFRATER score < 0.05
+  * Truncations and Interal ORFs
+  * When other ORFs overlap and have the same stop codon retain the longest
 
+A list of ORFs in non-coding RNAs is created for downstream differential expression analysis
+
+```
+Rscript filter_ORFs.R
+```
+
+## 8. Amino acid sequences
+
+### sORF amino acid usage
+```
+
+```
+
+### Mass spectrometry fasta
+Here we extract the amino acid sequences for short ORFs and combine with the Uniprot Chinese hamster proteins. A database can be created for Mass spec based HCP analysis
+```
+./scripts/create_ms_fasta.sh
+```
+
+## 9. Plastid reference 
+Here a plastid reference is created to enable the determination of the RPKM of transcripts and gene-level counting. A mask is created to elminate the first 5 and last 15 codons of ORFs >100aa, for ORFs <= 100aa the first and last codons are exlcuded from the counting process
+```
+mkdir plastid
+./scripts/make_plastid_reference.sh
+```
+
+## 9. Transcript level quantiation
+The RPKM is calculated for each annotated transcript
 ```bash
+./scripts/calculate_rpkm.sh
 ```
 
 ## 2. Gene level quantitation
@@ -110,7 +149,7 @@ refercen annotation are inputted to ORF-RATER
 To enable the identification of differential translation between the NTS and TS conditions the mapped Ribo-seq and RNA-seq CDS counts are determined. For the Riboeq
 
 ```bash
-
+./scripts/gene_level_counting.sh
 ```
 
 ## 1. Differential Translation Analysis
