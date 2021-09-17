@@ -18,7 +18,7 @@ The publication is freely availiable here:
   * samtools
 
 
-
+# Section 1: Analysis
 ## 2. Dowload the raw RiboSeq and RNASeq data
 
 To be completed when data is uploaded to SRA and ENA
@@ -115,7 +115,7 @@ Filter the ORF-RATER output to remove:
 A list of ORFs in non-coding RNAs is created for downstream differential expression analysis
 
 ```
-Rscript filter_ORFs.R
+Rscript ./scripts/filter_ORFs.R
 ```
 
 ## 8. Amino acid sequences
@@ -144,20 +144,65 @@ The RPKM is calculated for each annotated transcript
 ./scripts/calculate_rpkm.sh
 ```
 
-## 2. Gene level quantitation
+## 10. Gene level quantitation
 
 To enable the identification of differential translation between the NTS and TS conditions the mapped Ribo-seq and RNA-seq CDS counts are determined. For the Riboeq
 
 ```bash
-./scripts/gene_level_counting.sh
+./scripts/calculate_gene_cds_counts.sh
 ```
 
-## 1. Differential Translation Analysis
+## 11. Differential Translation Analysis
+First we count the RPFs and RNA-seq reads mapping to CDS regions using Plastid
 ```bash
+./scripts/calculate_gene_cds_count.sh
+```
+
+Then DESeq2 is using to calculate differential expression from the Ribo-seq and RNA-seq reads separately before differential translation is carried out.
+```
+Rscript ./scripts/run_deseq2.R
 ```
 
 # Proteomics
 Make a fasta file containing ORFRATER predictions and the current release of Uniprot proteins for the Chinese hamster 
 ```bash
 ./scripts/make_proteomics_fasta.sh
+```
+
+# Section 2: Reproduction of Tables and Figures
+
+## Make alignment tracks
+Here we make alignment tracks from the genome and transcriptome BAMs using individual replicates and the merged data
+```
+```
+
+
+## Results section 2.1: Quality control 
+Assessment of prerocessing and read length, phasing, metagene profiles for the Ribo-seq data
+```
+Rscript ./scripts/section_2.1.R
+```
+
+## Results section 2.2 ORF identification
+Outputs of the ORF-RATER algorithm for the Chinese hamster genome
+```
+Rscript ./scripts/section_2.2.R
+```
+
+## Results section 2.3 Upstream ORF analysis
+Analysis of the global effect of uORFs at the transcript level
+```
+Rscript ./scripts/section_2.3.R
+```
+
+## Results section 2.4 Differential Translation analysis of annotated protein coding genes
+DESeq2 analysis of the NCBI annotated protein coding genes annotated in the Chinese hamster genome
+```
+Rscript ./scripts/section_2.4.R
+```
+
+## Results section 2.5 Differential Translation analysis of ORFs in non-coding RNA
+DESeq2 analysis of ORFs identified in the Chinese hamster genome
+```
+Rscript ./scripts/section_2.5.R
 ```
