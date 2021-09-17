@@ -1,22 +1,28 @@
-#  # docker run --rm -v /mnt/HDD2/colin/ribosome_footprint_profiling/:/ribosome_footprint_profiling -t orfrater3:latest bash "ribosome_footprint_profiling/scripts/orfrater_docker_commands.sh"
 
+#!/bin/bash
+#### Description: ORF-RATER analysis run via docker   
+####                           
+#### 
+#### Written by: NIBRT Clarke Lab. - colin.clarke@nibrt.ie
+
+# set the working directory
 work_dir=ribosome_footprint_profiling/
 
- threads=50
+threads=50
 
- prune_transcripts.py \
- --inbed $work_dir/orfrater_analysis/cgr.orfrater.annotation.reference.bed \
- --summarytable $work_dir/orfrater_analysis/tid_removal_summary.txt \
- -p $threads \
- --minlen 28 \
- --maxlen 31 \
- $work_dir/reference_genome/GCF_003668045.3_CriGri-PICRH-1.0_genomic.fna \
- $work_dir/data/riboseq_chx/mapped/merged/riboseq_chx.bam \
- $work_dir/data/riboseq_nd/mapped/merged/riboseq_nd.bam \
- --pseudogenes $work_dir/orfrater_analysis/pseudogene_transcript_ids.txt \
- --outbed $work_dir/orfrater_analysis/transcripts.bed \
- -v \
- --force > $work_dir/orfrater_analysis/1prune.$source.log
+prune_transcripts.py \
+--inbed $work_dir/orfrater_analysis/cgr.orfrater.annotation.reference.bed \
+--summarytable $work_dir/orfrater_analysis/tid_removal_summary.txt \
+-p $threads \
+--minlen 28 \
+--maxlen 31 \
+$work_dir/reference_genome/GCF_003668045.3_CriGri-PICRH-1.0_genomic.fna \
+$work_dir/data/riboseq_chx/mapped/merged/riboseq_chx.bam \
+$work_dir/data/riboseq_nd/mapped/merged/riboseq_nd.bam \
+--pseudogenes $work_dir/orfrater_analysis/pseudogene_transcript_ids.txt \
+--outbed $work_dir/orfrater_analysis/transcripts.bed \
+-v \
+--force > $work_dir/orfrater_analysis/1prune.$source.log
 
 make_tfams.py --force \
 --inbed $work_dir/orfrater_analysis/transcripts.bed \
@@ -40,7 +46,7 @@ $work_dir/reference_genome/GCF_003668045.3_CriGri-PICRH-1.0_genomic.fna \
 --orfstore $work_dir/orfrater_analysis/orf.h5 > \
 $work_dir/orfrater_analysis/3find_ORF.log
 
- mkdir $work_dir/orfrater_analysis/chx
+mkdir $work_dir/orfrater_analysis/chx
 psite_trimmed.py \
 $work_dir/data/riboseq_chx/mapped/merged/riboseq_chx.bam \
 --minrdlen 28 \
@@ -119,9 +125,30 @@ $work_dir/orfrater_analysis/nd \
 --CSV $work_dir/orfrater_analysis/rate_regression.ncbi.csv \
 --force > $work_dir/orfrater_analysis/rate.regression.log
 
-make_orf_bed.py \
---inbed $work_dir/orfrater_analysis/transcripts.bed \
---ratingsfile $work_dir/orfrater_analysis/orfratings.h5 \
---minlen 10 \
---force \
---outbed $work_dir/orfrater_analysis/orfrater_predictions.reference.bed
+ make_orf_bed.py \
+ --inbed $work_dir/orfrater_analysis/transcripts.bed \
+ --ratingsfile $work_dir/orfrater_analysis/orfratings.h5 \
+ --minlen 5 \
+ --force \
+ --outbed $work_dir/orfrater_analysis/orfrater_predictions.reference.bed
+
+#  quantify_orfs.py \
+#  $work_dir/data/riboseq_chx/mapped/individual/nts_r1.bam \
+#  $work_dir/data/riboseq_chx/mapped/individual/nts_r2.bam \
+#  $work_dir/data/riboseq_chx/mapped/individual/nts_r3.bam \
+#  $work_dir/data/riboseq_chx/mapped/individual/nts_r4.bam \
+#  $work_dir/data/riboseq_chx/mapped/individual/ts_r1.bam \
+#  $work_dir/data/riboseq_chx/mapped/individual/ts_r2.bam \
+#  $work_dir/data/riboseq_chx/mapped/individual/ts_r3.bam \
+#  $work_dir/data/riboseq_chx/mapped/individual/ts_r4.bam \
+#  --subdir $work_dir/orfrater_analysis/chx \
+#  --inbed $work_dir/orfrater_analysis/transcripts.bed \
+#  --startmask 1 2 \
+#  --startmask 0 3 \
+#  --ratingsfile $work_dir/orfrater_analysis/orfratings.h5 \
+#  --minrating 0.3 \
+#  --minlen 0 \
+#  --quantfile test_rpkm \
+#  --CSV  $work_dir/orfrater_analysis/orfrater_rpf_rpkm.csv \
+#  --force \
+#  -p 32
