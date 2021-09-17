@@ -1,7 +1,6 @@
 #!/bin/bash
 mkdir -p uORF_analysis/reference_counts
 
-
 # count the CHX riboseq data
 for i in nts_r1 nts_r2 nts_r3 nts_r4 ts_r1 ts_r2 ts_r3 ts_r4
 do
