@@ -78,7 +78,7 @@ remaining reads are filtered based on length with only those within the expected
 ./scripts/preprocess_reads.sh
 
 # count the reads removed by filtering as well as the final RPFs
-./scripts/
+./scripts/fastq_read_count.sh
 ```
 
 ## 6. Finding the RPF Offset 
