@@ -1,5 +1,6 @@
 data/riboseq_*/*
 data/rnaseq_*/*
+data/preproccessed*
 reference_genome
 orfrater_analysis*
 price_analysis
@@ -17,4 +18,9 @@ script_backup
 amino_acid_analysis
 microprotein_blast
 pausing_analysis
-.gitignore
+.gitignore  
+.Rproj.user
+r_bookdown
+plastid_reference
+quantitation
+proteomics
