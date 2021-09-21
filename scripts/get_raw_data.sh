@@ -2,7 +2,7 @@
 #### Description: Downloads the RIBO-seq and RNA-seq data 
 ####              from ENA  
 #### 
-#### Written by: NIBRT Clarke Lab. - colin.clarke@nibrt.ie 
+#### Written by: Clarke Lab. NIBRT - colin.clarke@nibrt.ie 
 
 # 1. Total RNASeq (Single-end)
 mkdir -p data/rnaseq_se/raw_data
