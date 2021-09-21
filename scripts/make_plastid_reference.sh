@@ -1,4 +1,18 @@
 #!/bin/bash
+#### Description: Make a plastid reference for transcript quantitation
+####              and gene-level counting   
+####              1. Retain only annotated protein coding genes 
+####                 from the NCBI PICR-H reference
+####              2. Remove transcripts where reads accumulate at 
+####                 small number of positions
+####              3. Join the annotated PGCs with new ORF identifications 
+####                 from ORF-RATER
+####              4. Make a mask to elimate codons that may be biased due to 
+####                 CHX
+####              5. Apply mask and make count reference    
+#### 
+#### Written by: NIBRT Clarke Lab. - colin.clarke@nibrt.ie
+
 
 mkdir -p diff_translation_analysis
 
@@ -54,7 +68,6 @@ tabix -p bed diff_translation_analysis/start_codon_masks.bed.gz
 sort -k1,1 -k2,2n -k3,3n  diff_translation_analysis/stop_codon_masks.bed | \
 bgzip  > diff_translation_analysis/stop_codon_masks.bed.gz
 tabix -p bed diff_translation_analysis/stop_codon_masks.bed.gz
-
 
  cs generate \
  --annotation_files diff_translation_analysis/diff_translation.gtf  \
