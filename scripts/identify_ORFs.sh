@@ -42,14 +42,13 @@ orfrater_analysis/orfrater_predictions.reference.gtf
 
 # filter the ORFs - list gerated in R [orfscore > 0.6, AAlen >= 10, no annotated, no truncation] 
 
- cat ../riboseq_work/selected_novel_orfs.txt | awk '{print $1}' > orfrater_analysis/selected_orfnames.txt
+cat ../riboseq_work/selected_novel_orfs.txt | awk '{print $1}' > orfrater_analysis/selected_orfnames.txt
 
 grep -f orfrater_analysis/selected_orfnames.txt  \
 orfrater_analysis/orfrater_predictions.reference.bed > \
 orfrater_analysis/novel_proteoforms.bed 
 
 # # Make a fasta file for proteomics analysis
- 
 
 # # make a nucleotide fasta for the CDS gregion - from the orf-rater
 cat orfrater_analysis/novel_proteoforms.bed | awk -v type=CDS -f scripts/bed12toAnnotation.awk > orfrater_analysis/novel_orfrater_predictions.bed12
@@ -63,7 +62,7 @@ bedtools getfasta -fi reference_genome/GCF_003668045.3_CriGri-PICRH-1.0_genomic.
  -frame 1 \
  -outseq orfrater_analysis/orfrater_predictions.protein.fasta
 
-# # Download the UNIPROT proteins and join to novel ORF-RATER for MS
+# Download the UNIPROT proteins and join to novel ORF-RATER for MS
 wget  \
 ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/Eukaryota/UP000001075/UP000001075_10029.fasta.gz -P reference_genome \
 && gunzip reference_genome/UP000001075_10029.fasta.gz
