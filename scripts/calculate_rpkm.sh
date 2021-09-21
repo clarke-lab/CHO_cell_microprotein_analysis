@@ -1,4 +1,13 @@
 #!/bin/bash
+#### Description: Trancript level RPKM  
+####              1. Get CHX Ribo-seq CDS RPKM values for 
+####                 individual samples for the TS and NTS groups
+####              2. Get RNA-seq CDS values individual 
+####                 samples for the TS and NTS groups
+####              3. Combine for import into R    
+#### 
+#### Written by: NIBRT Clarke Lab. - colin.clarke@nibrt.ie
+
 mkdir -p uORF_analysis/reference_counts
 
 # count the CHX riboseq data
@@ -24,3 +33,6 @@ cs count \
   ./diff_translation_analysis/reference_annotation_transcript.positions \
   ./uORF_analysis/reference_counts/rnaseq_$i
 done
+
+# merge the Ribo-seq and RNA-seq CDS RPKM
+combine_cds_rpkm.py

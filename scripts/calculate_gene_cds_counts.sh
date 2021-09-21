@@ -1,3 +1,13 @@
+#!/bin/bash
+#### Description: Gene level differential translation counting   
+####              1. Count the CHX Ribo-seq RPFs in individual 
+####                 samples for the TS and NTS groups
+####              2. Count the reads for individual 
+####                 samples for the TS and NTS groups
+####              3. Combine for import into R    
+#### 
+#### Written by: NIBRT Clarke Lab. - colin.clarke@nibrt.ie
+
 # count the CHX riboseq data
 mkdir diff_translation_analysis/reference_counts
 
