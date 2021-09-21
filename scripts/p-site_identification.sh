@@ -69,4 +69,5 @@ for seqtype in riboseq_chx riboseq_harr riboseq_nd
     done < data/"$seqtype".txt
 done
 
+
 conda deactivate plastid
