@@ -122,7 +122,7 @@ Rscript ./scripts/filter_ORFs.R
 
 ### sORF amino acid usage
 ```
-
+./scripts/get_ORF_amino_acid_sequences.sh
 ```
 
 ### Mass spectrometry fasta
