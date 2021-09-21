@@ -16,8 +16,9 @@ star_path=../bin/STAR-2.7.8a/bin/Linux_x86_64
 # Ribo-seq
 # build indexes for contamination filtering
 
-# 1. rRNA
 contam_dir=reference_genome/contaminant_sequences/
+
+# a) rRNA
 mkdir $contam_dir/star_rRNA
 $star_path/STAR --runMode genomeGenerate \
 --genomeSAindexNbases 6  \
@@ -25,14 +26,14 @@ $star_path/STAR --runMode genomeGenerate \
 --runThreadN 32 \
 --genomeFastaFiles $contam_dir/rna_central_v18_rrna.fasta
 
-# 2. tRNA
+# b) tRNA
 $star_path/STAR --runMode genomeGenerate \
 --genomeSAindexNbases 6  \
 --genomeDir $contam_dir/star_tRNA \
 --runThreadN 32 \
 --genomeFastaFiles $contam_dir/rna_central_v18_trna.fasta
 
-# # # 2. snoRNA
+# c) snoRNA
 mkdir $contam_dir/star_snoRNA
 $star_path/STAR --runMode genomeGenerate \
 --genomeSAindexNbases 6  \
@@ -63,7 +64,7 @@ while read -ra a ;
       -o data/$seqtype/preproccessed_data/trimmed/${a[0]} data/$seqtype/raw_data/${a[0]}
     fi
   
-    # filter rRNA
+    # a) filter rRNA
     $star_path/STAR \
     --genomeLoad NoSharedMemory \
     --seedSearchStartLmaxOverLread .5 \
@@ -76,7 +77,7 @@ while read -ra a ;
     --readFilesCommand zcat \
     --outReadsUnmapped Fastx
     
-    # # filter snoRNA
+    # b) filter snoRNA
     $star_path/STAR \
     --genomeLoad NoSharedMemory \
     --seedSearchStartLmaxOverLread .5 \
@@ -88,7 +89,7 @@ while read -ra a ;
     --readFilesIn data/$seqtype/preproccessed_data/rRNA_filter/${a[1]}.rRNA.Unmapped.out.mate1 \
     --outReadsUnmapped Fastx
 
-    # filter tRNA
+    # c) filter tRNA
     $star_path/STAR \
     --genomeLoad NoSharedMemory \
     --seedSearchStartLmaxOverLread .5 \
@@ -100,16 +101,16 @@ while read -ra a ;
     --readFilesIn data/$seqtype/preproccessed_data/snoRNA_filter/${a[1]}.snoRNA.Unmapped.out.mate1 \
     --outReadsUnmapped Fastx
   
-    # remove unecessary files
+    # d) remove unecessary files
     rm data/$seqtype/preproccessed_data/*_filter/${a[1]}.*.Aligned.out.sam
     rm data/$seqtype/preproccessed_data/*_filter/${a[1]}.*.Log.progress.out
     rm data/$seqtype/preproccessed_data/*_filter/${a[1]}.*.SJ.out.tab
 
-    # filter the read lengths based on phasing qc (28nt to 31nt)
+    # e) filter the read lengths based on phasing qc (28nt to 31nt)
     awk 'BEGIN {FS = "\t" ; OFS = "\n"} {header = $0 ; getline seq ; getline qheader ; getline qseq ; if (length(seq) >= 28 && length(seq) <= 31) {print header, seq, qheader, qseq}}' \
     < data/$seqtype/preproccessed_data/tRNA_filter/${a[1]}.tRNA.Unmapped.out.mate1 > data/$seqtype/preproccessed_data/complete/${a[1]}.fastq
   
-    # map the retained reads to the PICR reference genome
+    # map the retained RPFs to the PICR reference genome
     $star_path/STAR \
     --outFilterType BySJout \
     --runThreadN 16 \
@@ -139,7 +140,7 @@ for seqtype in riboseq_harr riboseq_nd riboseq_chx
   do
     mkdir data/$seqtype/mapped/merged
 
-    # merge the preprocessed reads 
+    # merge the RPF for each Ribo-seq type 
     cat data/$seqtype/preproccessed_data/complete/*.fastq > \
     data/$seqtype/mapped/merged/$seqtype.fastq
 
@@ -196,7 +197,7 @@ while read -ra a ;
      samtools index data/rnaseq_se/mapped/individual/${a[1]}.bam
 done < data/rnaseq_se.txt
 
-# merged RNA-seq 
+# map the merged RNA-seq reads
 mkdir -p data/rnaseq_se/mapped/merged 
 
 zcat data/rnaseq_se/preprocessed_data/complete/* > \
