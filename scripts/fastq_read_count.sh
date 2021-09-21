@@ -1,3 +1,12 @@
+#!/bin/bash
+#### Description: Count the reads from each stage of preprocessing for the Ribo-seq data   
+####              1. Raw reads
+####              2. Trimmed
+####              3. rRNA, tRNA, snoRNA
+####              3. Final RPFs 28-31nt   
+#### 
+#### Written by: NIBRT Clarke Lab. - colin.clarke@nibrt.ie
+
 # 1. count the raw reads
 mkdir results/read_counts
 for seqtype in riboseq_chx riboseq_harr riboseq_nd
