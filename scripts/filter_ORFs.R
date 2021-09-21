@@ -194,12 +194,11 @@ table_s2 <-table_s2 %>%
     `Chromosome` = chrom,
     `Strand` = strand.x,
     `Genomic start position` = tcoord,
-    `Genomic stop position` =  tstop,
-  ) %>%
+    `Genomic stop position` =  tstop) %>%
   arrange(-`ORF-RATER score`)
 
 write_xlsx(list(ORFs = table_s2),
-  path = paste(results_dir,"Table S2.xlsx", sep=""),
+  path = paste(results_dir,"Table S3.xlsx", sep=""),
   format_headers = TRUE)
 
 #save(table_s2, file = paste(results_dir,"results_3_2.RData", sep=""))
