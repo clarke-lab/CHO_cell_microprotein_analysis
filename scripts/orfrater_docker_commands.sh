@@ -1,4 +1,3 @@
-
 #!/bin/bash
 #### Description: ORF-RATER analysis run via docker   
 ####                           
@@ -131,24 +130,3 @@ $work_dir/orfrater_analysis/nd \
  --minlen 5 \
  --force \
  --outbed $work_dir/orfrater_analysis/orfrater_predictions.reference.bed
-
-#  quantify_orfs.py \
-#  $work_dir/data/riboseq_chx/mapped/individual/nts_r1.bam \
-#  $work_dir/data/riboseq_chx/mapped/individual/nts_r2.bam \
-#  $work_dir/data/riboseq_chx/mapped/individual/nts_r3.bam \
-#  $work_dir/data/riboseq_chx/mapped/individual/nts_r4.bam \
-#  $work_dir/data/riboseq_chx/mapped/individual/ts_r1.bam \
-#  $work_dir/data/riboseq_chx/mapped/individual/ts_r2.bam \
-#  $work_dir/data/riboseq_chx/mapped/individual/ts_r3.bam \
-#  $work_dir/data/riboseq_chx/mapped/individual/ts_r4.bam \
-#  --subdir $work_dir/orfrater_analysis/chx \
-#  --inbed $work_dir/orfrater_analysis/transcripts.bed \
-#  --startmask 1 2 \
-#  --startmask 0 3 \
-#  --ratingsfile $work_dir/orfrater_analysis/orfratings.h5 \
-#  --minrating 0.3 \
-#  --minlen 0 \
-#  --quantfile test_rpkm \
-#  --CSV  $work_dir/orfrater_analysis/orfrater_rpf_rpkm.csv \
-#  --force \
-#  -p 32
