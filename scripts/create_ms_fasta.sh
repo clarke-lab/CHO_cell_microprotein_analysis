@@ -10,8 +10,8 @@ mkdir proteomics
 uniprot_url=ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/Eukaryota/UP000001075
 wget $uniprot_url/UP000001075_10029.fasta.gz -P proteomics && gunzip proteomics/UP000001075_10029.fasta.gz
 
-
 kent_path=/mnt/HDD2/colin/bin/kentUtils/bin/linux.x86_64
+
 
 $kent_path/bedToGenePred \
 orfrater_analysis/orfrater_predictions.reference.bed stdout | \
