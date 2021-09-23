@@ -6,19 +6,33 @@ Castro-Rivadeneyra *et. al*
 
 The publication is freely availiable here:
 
-## 1. Dependencies
-  * cutadapt 1.18
-  * trimmomatic-0.36
-  * STAR-2.7.8a
-  * ORFATER
-  * Docker
-  * Plastid 
-  * R
-  * DESeq2 
-  * samtools
 
+
+
+## 1. Dependencies
+| Software | R packages | 
+| ------------- | --------------- |
+| [cutadapt 1.18](https://cutadapt.readthedocs.io/en/stable/)     | [tidyverse]() |
+| [STAR-2.7.8a](https://github.com/alexdobin/STAR) | [DESeq2]() | 
+| [trimmomatic-0.36](http://www.usadellab.org/cms/?page=trimmomatic) | [patchwork] |
+| [Plastid](https://plastid.readthedocs.io/en/latest/) | [writexl] |
+| [ORF-RATER](https://github.com/alexfields/ORF-RATER) | 
+| [Docker](https://www.docker.com/) |
+| [samtools](http://www.htslib.org/) | 
+| [Deeptools](https://deeptools.readthedocs.io/en/develop/) |
+| [agat](https://github.com/NBISweden/AGAT)
+| [Kent Utilities](https://hgdownload.soe.ucsc.edu/admin/exe/) |
+
+<br/>  
 
 # Section 1: Analysis
+
+Make a directory for the analysis and enter it
+```
+mkdir ribosome_footprint_profiling
+cd ribosome_footprint_profiling
+```
+
 ## 2. Dowload the raw RiboSeq and RNASeq data
 
 To be completed when data is uploaded to SRA and ENA
@@ -84,7 +98,7 @@ remaining reads are filtered based on length with only those within the expected
 ## 6. Finding the RPF Offset 
 Calculation of the P-site offset and analysis of triplet periodicty for RPFs for the merged and individual samples.  
 ```bash
-./scripts/p-site_identification.sh
+./scripts/identify_RPF_psite.sh
 ```
 
 ## 7. ORF identification
