@@ -4,14 +4,13 @@
 #### 
 #### Written by: NIBRT Clarke Lab. - colin.clarke@nibrt.ie
 
-
 package_list <- c("tidyverse","writexl")
 
-lapply(package_list, require, character.only = TRUE)
+invisible(lapply(package_list, require, character.only = TRUE, quietly=TRUE))
 
 root_dir <-c("/mnt/HDD2/colin/ribosome_footprint_profiling/")
 
-results_dir <- paste0(root_dir,"results/section3.2/")
+results_dir <- paste0(root_dir,"results/section2.2/")
 if (!dir.exists(results_dir)) {
   dir.create(results_dir,recursive = TRUE)
 }
@@ -44,7 +43,7 @@ orftable_filtered <- orftable %>%
     orftype == "extension" ~ "Extension"
   ))
 
-table(orftable_filtered$orftype)
+#table(orftable_filtered$orftype)
 
 # Filter potential false positives
 non_truncates <- orftable_filtered %>% 
@@ -111,68 +110,17 @@ orftable_filtered <- bind_rows(non_truncates,
                                ouORF_filtered, 
                                new_filtered)
 
-# write the ids to file for transcript level quantation using plastid
-write(orftable_filtered$orfname, file=paste0(root_dir,"quantitation/transcript/filtered_orfs.txt"))
-
-# where there are multiple new-transcripts take the longest
-# this is for plastid counting requirment for 1 ORF per transcript
-# select new ORFs on non-coding RNAs onle
-selected_new_for_de <- orftable_filtered %>% 
-  filter(orftype == "New") %>% 
-  filter(str_detect(orfname, "NR|XR")) %>%
-  #filter(AAlen >= 5 & AAlen <= 100) %>%
-  group_by(tid) %>%
-  top_n(AAlen, n=1) 
-
-# write the ids to allow filtering of the GTF file
-write(selected_new_for_de$orfname, file=paste0(root_dir,"quantitation/gene/non_coding_encoded_orfs.txt"))
-
-pcg_orfs <- orftable_filtered %>% 
-  filter(orftype == "Annotated" | orftype == "Extension" | orftype == "Isoform" )
-
-write(pcg_orfs$orfname, file=paste0(root_dir,"quantitation/transcript/pcg_orfs.txt"))
-
-# selecting sORFs for the proteomics analysis
-selected_for_proteomics <- orftable_filtered %>%
-  filter(orftype != "Annotated" & orftype != "Isoform" & orftype != "Extension")
-
-write(selected_for_proteomics$orfname, file=paste0(root_dir,"proteomics/orfs_for_proteomics.txt"))
-
-  selected_annotated <- orftable_filtered %>% 
-    filter(orftype == "Annotated") 
-
-write(selected_annotated$orfname, file=paste0(root_dir,"quantitation/transcript/selected_annotated.txt"))
-
-selected_extension <- orftable_filtered %>% 
-  filter(orftype == "Extension") %>%
-  group_by(tid) %>%
-  top_n(AAlen, n=1) 
-  
-write(selected_extension$orfname, file=paste0(root_dir,"quantitation/transcript/selected_extension.txt"))
-  
-selected_isoform <- orftable_filtered %>% filter(orftype == "Isoform") %>%
-  group_by(tid) %>%
-  top_n(AAlen, n=1) 
-  
-write(selected_isoform$orfname, file=paste0("quantitation/transcript/selected_isoform.txt"))
-  
-selected_upstream <- orftable_filtered %>% filter(orftype == "Upstream") %>%
-  group_by(tid) %>%
-  top_n(AAlen, n=1) 
-   
-write(selected_upstream$orfname, file=paste0("quantitation/transcript/selected_upstream.txt"))
-    
-selected_overlap <- orftable_filtered %>% filter(orftype == "Start overlap") %>%
-  group_by(tid) %>%
-  top_n(AAlen, n=1) 
-
-write(selected_overlap$orfname, file=paste0("quantitation/transcript/selected_overlap.txt"))
-
-write(selected_new_for_de$orfname, file=paste0("quantitation/transcript/selected_new.txt"))
-   
-CriGri_PICRH_1_0_annotation <- read_delim(paste0("reference_genome/GCF_003668045.3_CriGri-PICRH-1.0_feature_table.txt"), 
+print("Chinese hamster ORFs Identified")
+table(orftable_filtered$orftype)
+print("------")
+# add annotation information to identified ORFs
+suppressWarnings(
+  suppressMessages(
+    CriGri_PICRH_1_0_annotation <- read_delim(paste0("reference_genome/GCF_003668045.3_CriGri-PICRH-1.0_feature_table.txt"), 
           "\t", escape_double = FALSE, trim_ws = TRUE) %>% 
-          mutate(tfam= `product_accession`) 
+          mutate(tfam= `product_accession`)
+          )
+          )
 
 table_s2 <- left_join(orftable_filtered, CriGri_PICRH_1_0_annotation, by="tfam") 
 
@@ -201,4 +149,69 @@ write_xlsx(list(ORFs = table_s2),
   path = paste(results_dir,"Table S3.xlsx", sep=""),
   format_headers = TRUE)
 
-#save(table_s2, file = paste(results_dir,"results_3_2.RData", sep=""))
+save(table_s2, file = paste(results_dir,"results_2_2.RData", sep=""))
+
+
+## output ORF lists for different analyses
+print("Outputting ORF lists for downstream analysis")
+
+# 1. amino acid frequencies
+print("--Amino acid analysis--")
+# annotated PCGs
+long_orfs <- table_s2 %>%
+  filter(`Length (AAs)` > 100) %>%
+  filter(`ORF type` == "Annotated") 
+write(long_orfs$`ORF-RATER name`, file=paste0("orf_lists/long_orfs_for_AA_freq.txt"))
+paste0(length(long_orfs$`ORF-RATER name`), 
+  " ORFs written to ", 
+  paste0(root_dir,"orf_lists/long_orfs_for_AA_freq.txt"))
+
+
+# non-coding RNA ORFs 
+new_lncrna_short_orfs <-table_s2 %>% 
+  filter(`Length (AAs)` <= 100) %>%
+  filter(`ORF type` == "New") %>%
+  filter(str_detect(`Transcript ID`, "XR|NR"))
+write(new_lncrna_short_orfs$`ORF-RATER name`, file="orf_lists/lncrna_short_orfs_for_AA_freq.txt")
+paste0(length(new_lncrna_short_orfs$`ORF-RATER name`), 
+  " ORFs written to ", 
+  paste0(root_dir,"orf_lists/lncrna_short_orfs_for_AA_freq.txt"))
+
+
+# upstream short ORFs
+upstream_short_orfs <-table_s2 %>% 
+  filter(`Length (AAs)` <= 100) %>%
+  filter(`ORF type` == "Upstream" | `ORF type` == "Start overlap") 
+
+write(upstream_short_orfs$`ORF-RATER name`, file="orf_lists/upstream_short_orfs_for_AA_freq.txt")
+paste0(length(upstream_short_orfs$`ORF-RATER name`), 
+  " ORFs written to ", 
+  paste0(root_dir,"orf_lists/upstream_short_orfs_for_AA_freq.txt"))
+
+# 2. gene level differential expression analysis
+print("--Differential expression--")
+# where there are multiple new-transcripts take the longest
+# this is for plastid counting requirment for 1 ORF per transcript
+# select new ORFs on non-coding RNAs onle
+selected_new_for_de <- table_s2 %>% 
+  filter(`ORF type` == "New") %>% 
+  filter(str_detect(`ORF-RATER name`, "NR|XR")) %>%
+  #filter(AAlen >= 5 & AAlen <= 100) %>%
+  group_by(`Transcript ID`) %>%
+  top_n(`Length (AAs)`, n=1) 
+
+# write the ids to allow filtering of the GTF file
+write(selected_new_for_de$`ORF-RATER name`, file=paste0(root_dir,"orf_lists/non_coding_orfs.txt"))
+paste0(length(selected_new_for_de$`ORF-RATER name`), 
+  " ORFs written to ", 
+  paste0(root_dir,"orf_lists/non_coding_orfs_for_de.txt"))
+
+
+# 3. Proteomics
+print("--Proteomics--")
+selected_for_proteomics <- table_s2 %>%
+  filter(`ORF type` != "Annotated" & `ORF type` != "Isoform" & `ORF type` != "Extension")
+write(selected_for_proteomics$`ORF-RATER name`, file="orf_lists/orfs_for_proteomics.txt")
+paste0(length(selected_for_proteomics$`ORF-RATER name`), 
+  " ORFs written to ", paste0(root_dir,
+  "orf_lists/orfs_for_proteomics"))
