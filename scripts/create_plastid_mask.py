@@ -1,9 +1,9 @@
 import numpy
 from plastid import * 
 
-transcript_reader = GTF2_TranscriptAssembler(open("quantitation/gene/diff_translation.gtf"))
-fout_start = open("quantitation/plastid_reference/gene/start_codon_masks.bed","w")
-fout_stop = open("quantitation/plastid_reference/gene/stop_codon_masks.bed","w")
+transcript_reader = GTF2_TranscriptAssembler(open("plastid_reference/plastid_annotations.gtf"))
+fout_start = open("plastid_reference/start_codon_masks.bed","w")
+fout_stop = open("plastid_reference/stop_codon_masks.bed","w")
 
 for feature in transcript_reader:
   cds = feature.get_cds()
