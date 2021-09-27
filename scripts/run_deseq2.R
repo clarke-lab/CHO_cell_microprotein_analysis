@@ -1,24 +1,28 @@
 #!/usr/bin/env Rscript --vanilla
-#### Description: Filters the raw ORF-RATER output
-####              
-#### 
+#### Description: Use DESeq2 to finds
+####              1. DE genes from the RNA-seq data
+####              2. DE genes from the Ribo-seq data
+####              3. Differentiall translated genes  
 #### Written by: NIBRT Clarke Lab. - colin.clarke@nibrt.ie
 
+## 1. Prepare for analysis
 package_list <- c(
   "tidyverse", "DESeq2", "writexl", "ggpubr",
   "ggthemes", "viridis", "patchwork", "WebGestaltR", "fuzzyjoin",
-  "GenomicFeatures", "wiggleplotr", "readr", "heatmaply", "ggvenn", "data.table", "ggrepel"
+  "GenomicFeatures", "wiggleplotr", "readr", "heatmaply", "ggvenn", "data.table", 
+  "ggrepel"
 )
 
 lapply(package_list, require, character.only = TRUE)
 
 root_dir <- c("/mnt/HDD2/colin/ribosome_footprint_profiling/")
-results_dir <- paste0(root_dir,"results/section3.5/")
+results_dir <- paste0(root_dir,"results/section2.4/")
 if (!dir.exists(results_dir)) {
   dir.create(results_dir, recursive = TRUE)
 }
 
-te_combined_data <- read.delim(paste0(root_dir, "quantitation/gene/count_output/combined_counts.txt"),
+# load the counts
+te_combined_data <- read.delim(paste0(root_dir, "quantitation/gene_cds_counts.txt"),
   sep = "\t",
   header = TRUE,
   row.names = "region"
@@ -30,7 +34,7 @@ te_sample_table <- read.csv(paste0(root_dir, "data/de_translation_design.txt"),
 )
 
 # import the annotation
-reference_annotation_plastid_merged <- read_delim(paste0(root_dir, "diff_translation_analysis/reference_annotation_merged.txt"),
+reference_annotation_plastid_merged <- read_delim(paste0(root_dir, "plastid_reference/annotation_merged.txt"),
   "\t",
   escape_double = FALSE, col_names = FALSE,
   trim_ws = TRUE, skip = 27
@@ -50,33 +54,14 @@ mouse_feature_table <- read_delim(paste0(root_dir, "reference_genome/GCF_0000016
   escape_double = FALSE, trim_ws = TRUE
 )
 
-# set the differential expression counts
-reference_annotation_plastid_merged <- read_delim(paste0(root_dir, "diff_translation_analysis/reference_annotation_merged.txt"),
-  "\t",
-  escape_double = FALSE, col_names = FALSE,
-  trim_ws = TRUE, skip = 27
-) %>%
-  mutate(X3 = str_remove(X1, "gene_")) %>%
-  mutate(`product_accession` = str_remove(X3, "_1"))
-
-# import the ncbi annotation
-CriGri_PICRH_1_0_annotation <- read_delim(paste0(root_dir, "reference_genome/GCF_003668045.3_CriGri-PICRH-1.0_feature_table.txt"),
-  "\t",
-  escape_double = FALSE, trim_ws = TRUE
-)
-
-# load the mouse annotation - used to match gene names to complete LOC to symbol conversion
-mouse_feature_table <- read_delim(paste0(root_dir, "reference_genome/GCF_000001635.27_GRCm39_feature_table.txt"),
-  "\t",
-  escape_double = FALSE, trim_ws = TRUE
-)
-
+# Differential expression and translation
+# set the differential expression/translation criteria
 fold_change_threshold <- 1.5
 pval_threshold <- 0.05
 base_mean_threshold <- 0
 average_counts <- 20
 
-# RNA-seq only differential expression
+# 2. RNA-seq only differential expression
 rnaseq_data <- te_combined_data %>%
   dplyr::select(contains("rnaseq"))
 
@@ -87,7 +72,7 @@ rnaseq_data <- rnaseq_data[detected.rna, ]
 rnaseq_design <- te_sample_table %>%
   filter(assay == "rnaseq")
 
-# 2) RNASeq DESeq
+
 dds_rnaseq <- DESeqDataSetFromMatrix(
   countData = rnaseq_data,
   colData = rnaseq_design,
@@ -339,5 +324,4 @@ sig_res_te <- bind_rows(pcg_without_loc_ids, pcg_with_loc_ids, nc_sig_res_te) %>
   dplyr::select(c("geneid", "GeneID", "symbol", "name", "baseMean", "log2FoldChange", "lfcSE", "stat", "pvalue", "padj")) %>%
   rename("Plastid_ID" = geneid)
 
-
-save(res_rnaseq, res_riboseq, res_te,dds_te, file = paste(results_dir, "results.3.5.RData", sep = ""))
+save(res_rnaseq,sig_res_rnaseq,res_riboseq,sig_res_riboseq,res_te,dds_te,sig_res_te,file = paste(results_dir, "results.2.4.RData", sep = ""))
