@@ -184,6 +184,10 @@ First we count the RPFs and RNA-seq reads mapping to CDS regions using Plastid
 
 Then DESeq2 is using to calculate differential expression from the Ribo-seq and RNA-seq reads separately before differential translation is carried out.
 ```
+# the mouse annotation is used to replace missing gene CGR gene symbols
+wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/635/GCF_000001635.27_GRCm39/GCF_000001635.27_GRCm39_feature_table.txt.gz \
+-P reference_genome
+
 Rscript ./scripts/run_deseq2.R
 ```
 
