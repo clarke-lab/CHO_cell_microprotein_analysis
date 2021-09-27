@@ -466,7 +466,7 @@ ggsave(dna_repair_boxplots, filename = paste(results_dir, "Figure_3.5_E.png", se
 # Average coverage plots
 ## TXDB Annotation
 ```{r}
-cgr_txdb <- makeTxDbFromGFF("../ribosome_footprint_profiling/reference_genome/GCF_003668045.3_CriGri-PICRH-1.0_genomic.gff", format = "auto")
+cgr_txdb <- makeTxDbFromGFF("../../reference_genome/GCF_003668045.3_CriGri-PICRH-1.0_genomic.gff", format = "auto")
 
 cgr.transcripts <- transcripts(cgr_txdb)
 
@@ -510,30 +510,30 @@ sample_data <- dplyr::data_frame(
 
 sample_data <- sample_data %>%
   dplyr::mutate(bigWig = c(
-    "../ribosome_footprint_profiling/alignment_tracks/individual/diff_trans/nts_r1.rnaseq_deseq.bw",
-    "../ribosome_footprint_profiling/alignment_tracks/individual/diff_trans/nts_r2.rnaseq_deseq.bw",
-    "../ribosome_footprint_profiling/alignment_tracks/individual/diff_trans/nts_r3.rnaseq_deseq.bw",
-    "../ribosome_footprint_profiling/alignment_tracks/individual/diff_trans/nts_r4.rnaseq_deseq.bw",
-    "../ribosome_footprint_profiling/alignment_tracks/individual/diff_trans/ts_r1.rnaseq_deseq.bw",
-    "../ribosome_footprint_profiling/alignment_tracks/individual/diff_trans/ts_r2.rnaseq_deseq.bw",
-    "../ribosome_footprint_profiling/alignment_tracks/individual/diff_trans/ts_r3.rnaseq_deseq.bw",
-    "../ribosome_footprint_profiling/alignment_tracks/individual/diff_trans/ts_r4.rnaseq_deseq.bw",
-    "../ribosome_footprint_profiling/alignment_tracks/individual/diff_trans/nts_r1.chx_deseq.bw",
-    "../ribosome_footprint_profiling/alignment_tracks/individual/diff_trans/nts_r2.chx_deseq.bw",
-    "../ribosome_footprint_profiling/alignment_tracks/individual/diff_trans/nts_r3.chx_deseq.bw",
-    "../ribosome_footprint_profiling/alignment_tracks/individual/diff_trans/nts_r4.chx_deseq.bw",
-    "../ribosome_footprint_profiling/alignment_tracks/individual/diff_trans/ts_r1.chx_deseq.bw",
-    "../ribosome_footprint_profiling/alignment_tracks/individual/diff_trans/ts_r2.chx_deseq.bw",
-    "../ribosome_footprint_profiling/alignment_tracks/individual/diff_trans/ts_r3.chx_deseq.bw",
-    "../ribosome_footprint_profiling/alignment_tracks/individual/diff_trans/ts_r4.chx_deseq.bw",
-    "../ribosome_footprint_profiling/alignment_tracks/individual/diff_trans/nts_r1.chx_deseq_offset.bw",
-    "../ribosome_footprint_profiling/alignment_tracks/individual/diff_trans/nts_r2.chx_deseq_offset.bw",
-    "../ribosome_footprint_profiling/alignment_tracks/individual/diff_trans/nts_r3.chx_deseq_offset.bw",
-    "../ribosome_footprint_profiling/alignment_tracks/individual/diff_trans/nts_r4.chx_deseq_offset.bw",
-    "../ribosome_footprint_profiling/alignment_tracks/individual/diff_trans/ts_r1.chx_deseq_offset.bw",
-    "../ribosome_footprint_profiling/alignment_tracks/individual/diff_trans/ts_r2.chx_deseq_offset.bw",
-    "../ribosome_footprint_profiling/alignment_tracks/individual/diff_trans/ts_r3.chx_deseq_offset.bw",
-    "../ribosome_footprint_profiling/alignment_tracks/individual/diff_trans/ts_r4.chx_deseq_offset.bw"
+    "../../alignment_tracks/individual/rnaseq/nts_r1.rnaseq_deseq.bw",
+    "../../alignment_tracks/individual/rnaseq/nts_r2.rnaseq_deseq.bw",
+    "../../alignment_tracks/individual/rnaseq/nts_r3.rnaseq_deseq.bw",
+    "../../alignment_tracks/individual/rnaseq/nts_r4.rnaseq_deseq.bw",
+    "../../alignment_tracks/individual/rnaseq/ts_r1.rnaseq_deseq.bw",
+    "../../alignment_tracks/individual/rnaseq/ts_r2.rnaseq_deseq.bw",
+    "../../alignment_tracks/individual/rnaseq/ts_r3.rnaseq_deseq.bw",
+    "../../alignment_tracks/individual/rnaseq/ts_r4.rnaseq_deseq.bw",
+    "../../alignment_tracks/individual/riboseq/nts_r1.chx_deseq.bw",
+    "../../alignment_tracks/individual/riboseq/nts_r2.chx_deseq.bw",
+    "../../alignment_tracks/individual/riboseq/nts_r3.chx_deseq.bw",
+    "../../alignment_tracks/individual/riboseq/nts_r4.chx_deseq.bw",
+    "../../alignment_tracks/individual/riboseq/ts_r1.chx_deseq.bw",
+    "../../alignment_tracks/individual/riboseq/ts_r2.chx_deseq.bw",
+    "../../alignment_tracks/individual/riboseq/ts_r3.chx_deseq.bw",
+    "../../alignment_tracks/individual/riboseq/ts_r4.chx_deseq.bw",
+    "../../alignment_tracks/individual/riboseq/nts_r1.chx_deseq_asite.bw",
+    "../../alignment_tracks/individual/riboseq/nts_r2.chx_deseq_asite.bw",
+    "../../alignment_tracks/individual/riboseq/nts_r3.chx_deseq_asite.bw",
+    "../../alignment_tracks/individual/riboseq/nts_r4.chx_deseq_asite.bw",
+    "../../alignment_tracks/individual/riboseq/ts_r1.chx_deseq_asite.bw",
+    "../../alignment_tracks/individual/riboseq/ts_r2.chx_deseq_asite.bw",
+    "../../alignment_tracks/individual/riboseq/ts_r3.chx_deseq_asite.bw",
+    "../../alignment_tracks/individual/riboseq/ts_r4.chx_deseq_asite.bw"
   ))
 track_data <- dplyr::mutate(sample_data, track_id = condition, colour_group = type)
 ```
