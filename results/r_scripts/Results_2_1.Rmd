@@ -370,7 +370,7 @@ rnaseq %>%
 ```
 # RPF selected reads
 ```{r}
-read_dir <- "cat ../ribosome_footprint_profiling/data/"
+read_dir <- "cat ../../data/"
 read_dir2 <- "/preproccessed_data/tRNA_filter/"
 sample <- "nts_r2"
 filter_stage <- ".tRNA.Unmapped.out.mate1"
@@ -396,7 +396,7 @@ for (j in treatments) {
   }
 }
 
-rnaseq_dist_command <- "cat ../ribosome_footprint_profiling/data/rnaseq_se/mapped/merged/rnaseq_se.fastq | awk '{if(NR%4==2) print length($1)}' | sort -n | uniq -c > read_length.txt"
+rnaseq_dist_command <- "cat ../../data/rnaseq_se/mapped/merged/rnaseq_se.fastq | awk '{if(NR%4==2) print length($1)}' | sort -n | uniq -c > read_length.txt"
 system(rnaseq_dist_command)
 
 sample_rnaseq <- read_delim("read_length.txt", col_names = F, delim = " ") %>%
