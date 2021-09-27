@@ -49,7 +49,7 @@ CriGri_PICRH_1_0_annotation <- read_delim(paste0(root_dir, "reference_genome/GCF
 )
 
 # load the mouse annotation - used to match gene names to complete LOC to symbol conversion
-mouse_feature_table <- read_delim(paste0(root_dir, "reference_genome/GCF_000001635.27_GRCm39_feature_table.txt"),
+mouse_feature_table <- read_delim(paste0(root_dir, "reference_genome/ _feature_table.txt"),
   "\t",
   escape_double = FALSE, trim_ws = TRUE
 )
@@ -85,6 +85,7 @@ dds_rnaseq <- estimateDispersions(dds_rnaseq)
 
 # track plotting scaling
 bam_coverage_scaling_rnaseq <- 1 / sizeFactors(dds_rnaseq)
+write_lines(bam_coverage_scaling_rnaseq, paste(results_dir, "rnaseq_size_factors.txt", sep = ""))
 
 dds_rnaseq <- DESeq(dds_rnaseq)
 
@@ -189,7 +190,9 @@ dds_riboseq$condition <- relevel(dds_riboseq$condition, ref = "nts")
 dds_riboseq <- estimateSizeFactors(dds_riboseq)
 dds_riboseq <- estimateDispersions(dds_riboseq)
 
+# write size factors for Ribo gene level coverage plots
 bam_coverage_scaling_riboseq <- 1 / sizeFactors(dds_riboseq)
+write_lines(bam_coverage_scaling_riboseq, paste(results_dir, "riboseq_size_factors.txt", sep = ""))
 
 dds_riboseq <- DESeq(dds_riboseq)
 res_riboseq <- results(dds_riboseq)
