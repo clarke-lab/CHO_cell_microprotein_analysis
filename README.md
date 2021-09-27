@@ -129,6 +129,13 @@ Filter the ORF-RATER output to remove:
 A list of ORFs in non-coding RNAs is created for downstream differential expression analysis
 
 ```
+# create a directory to store ids for amino acid analysis and plastid quantitation
+mkdir orf_lists 
+
+# mkdir to store results
+mkdir results/section_2.2
+
+# filter the ORF-RATER output
 Rscript ./scripts/filter_ORFs.R
 ```
 
@@ -142,19 +149,21 @@ Rscript ./scripts/filter_ORFs.R
 ### Mass spectrometry fasta
 Here we extract the amino acid sequences for short ORFs and combine with the Uniprot Chinese hamster proteins. A database can be created for Mass spec based HCP analysis
 ```
+mkdir proteomics_db
 ./scripts/create_ms_fasta.sh
 ```
 
 ## 9. Plastid reference 
 Here a plastid reference is created to enable the determination of the RPKM of transcripts and gene-level counting. A mask is created to elminate the first 5 and last 15 codons of ORFs >100aa, for ORFs <= 100aa the first and last codons are exlcuded from the counting process
 ```
-mkdir plastid
+mkdir plastid_reference
 ./scripts/make_plastid_reference.sh
 ```
 
 ## 9. Transcript level quantiation
 The RPKM is calculated for each annotated transcript
 ```bash
+mkdir -p quantitation/transcript_cds_rpkm
 ./scripts/calculate_rpkm.sh
 ```
 
@@ -163,6 +172,7 @@ The RPKM is calculated for each annotated transcript
 To enable the identification of differential translation between the NTS and TS conditions the mapped Ribo-seq and RNA-seq CDS counts are determined. For the Riboeq
 
 ```bash
+mkdir quantitation/gene_cds_counts
 ./scripts/calculate_gene_cds_counts.sh
 ```
 
@@ -175,12 +185,6 @@ First we count the RPFs and RNA-seq reads mapping to CDS regions using Plastid
 Then DESeq2 is using to calculate differential expression from the Ribo-seq and RNA-seq reads separately before differential translation is carried out.
 ```
 Rscript ./scripts/run_deseq2.R
-```
-
-# Proteomics
-Make a fasta file containing ORFRATER predictions and the current release of Uniprot proteins for the Chinese hamster 
-```bash
-./scripts/make_proteomics_fasta.sh
 ```
 
 # Section 2: Reproduction of Tables and Figures
