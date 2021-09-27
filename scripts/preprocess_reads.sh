@@ -54,7 +54,8 @@ do
 
 while read -ra a ;
   do
-    # run cutadapt; note chx data has adapter removed by sequencing provider
+    # run cutadapt; note chx data has adapter removed by sequencing provider / -m flag used to remove 
+    # short reads post trimming for HARR/ND
     if [ $seqtype == 'riboseq_chx' ]
     then
       cutadapt  --report=full -a AGATCGGAAGAGCACACGTCT -j 50 --minimum-length 1 \
