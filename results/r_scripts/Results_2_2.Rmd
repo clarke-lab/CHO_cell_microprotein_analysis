@@ -1,0 +1,321 @@
+---
+title: "Section 2.2 Results"
+output: html_notebook
+---
+
+# Prepare for analysis
+```{r message=FALSE, warning=FALSE, include=FALSE}
+
+package_list <- c(
+  "tidyverse", "grid", "gridExtra", "viridis", "cowplot", 
+  "ggforce", "patchwork", "writexl", "ggforce", "Biostrings",
+  "ggpp","ggpmisc","ggpubr"
+)
+
+lapply(package_list, require, character.only = TRUE)
+
+root_dir <-c("/mnt/HDD2/colin/ribosome_footprint_profiling/")
+
+results_dir <- "/mnt/HDD2/colin/ribosome_footprint_profiling/results/section2.2/"
+if (!dir.exists(results_dir)) {
+  dir.create(results_dir,recursive = TRUE)
+}
+```
+
+## Load the ORFs
+```{r}
+load("/mnt/HDD2/colin/ribosome_footprint_profiling/results/section2.2/results_2_2.RData")
+```
+
+## Proportion of start codons and ORF types
+```{r}
+table_s2 %>%
+  filter(`ORF type`  != "Annotated") %>%
+  summarise(length(`ORF-RATER name`))
+
+table_s2 %>%
+  filter( `ORF type` != "Annotated") %>%
+  group_by(`Start codon`) %>%
+  summarise(  count = n(),
+    percentage = (n() / nrow(.)) * 100)  %>%
+arrange(-percentage)
+
+table_s2 %>%
+  filter(`ORF type` != "Annotated") %>%
+  group_by(`ORF type`) %>%
+  summarise(
+    count = n(),
+    percentage = (n() / nrow(.)) * 100 ) %>%
+arrange(-percentage)
+
+table(table_s2$`ORF type`, table_s2$`Start codon`)
+```
+# Figure 2 plots
+## Summary plot
+```{r message=FALSE, warning=FALSE}
+orftype_codon_data <- data.frame(table(table_s2$`ORF type`, table_s2$`Start codon`)) %>%
+  mutate(Var3 = gsub("T","U",Var2)) %>%
+  group_by(Var3) %>%
+  mutate(count_name_occur = Freq) %>%
+  group_by(Var1) %>%
+  mutate(total = sum(Freq)) %>%
+  mutate(codons = factor(Var3, levels = c("UUG", "GUG", "CUG", "AUG")))
+
+summary_start <- table(table_s2$`ORF type`, table_s2$`Start codon`)
+colnames(summary_start) <- gsub("T","U",colnames(summary_start))
+summary_start <- summary_start[order(rowSums(-summary_start)),]
+
+sum_table <- tableGrob(summary_start, theme = ttheme_default(base_size = 12, padding = unit(c(1, 1), "mm")))
+
+orftype_codon_data %>%
+  ggplot(aes(x = reorder(Var1, count_name_occur), y = Freq, fill = codons)) +
+  geom_bar(stat = "identity") +
+  scale_fill_viridis(discrete = T, direction = -1) +
+  theme_minimal_vgrid() +
+  coord_flip() +
+  labs(y = "# Identified ORFs", x = "", fill = "Start codon") +
+  theme(legend.position = "top") +
+  annotation_custom(sum_table, xmin = 5, xmax = 1, ymin = 4000, ymax = 5500)
+
+ggsave(filename = paste(results_dir,"Figure_2A.png", sep=""), dpi = 700, device = "png")
+```
+## Length distribution plots
+```{r}
+uorf_length_plot <- table_s2 %>%
+  filter(`ORF type` == "Upstream") %>%
+  ggplot(aes(x=sort(`Length (AAs)`))) +
+  geom_histogram(bins=50, fill="#999933") +
+  labs(y="# uORFs", x = "uORF Length (aa)") +
+  #annotate("text", x = 230, y=620, size=1.5, label=paste0("Mean length:\n",round(mean(uorfs$`Length (AAs)`)), " aa")) +
+  #geom_vline(xintercept = median(uorfs$`Length (AAs)`), color="red", linetype = 11, size = 0.2) +
+  
+geom_text_npc(aes(npcx=0.9, npcy=0.9,label=paste0("Mean length:\n",round(mean(`Length (AAs)`)), " aa")),size=3)+
+theme_bw() 
+uorf_length_plot
+
+
+ouorf_length_plot <- table_s2 %>%
+  filter(`ORF type` == "Start overlap") %>%
+  ggplot(aes(x=sort(`Length (AAs)`))) +
+  geom_histogram(bins=50, fill="#332288") +
+  labs(y="# ouORFs", x = "uORF Length (aa)") +
+ # annotate("text", x = 320, y=140, size=1.5, label=paste0("Mean length:\n",round(mean(ouorfs$`Length (AAs)`)), " aa")) +
+  #geom_vline(xintercept = median(ouorfs$`Length (AAs)`), color="red", linetype = 11, size = 0.2) +
+  theme_bw() + 
+geom_text_npc(aes(npcx=0.9, npcy=0.9,label=paste0("Mean length:\n",round(mean(`Length (AAs)`)), " aa")),size=3)
+ouorf_length_plot 
+
+new_orf_length_plot <- table_s2 %>%
+  filter(`ORF type` == "New") %>%
+  ggplot(aes(x=sort(`Length (AAs)`))) +
+  geom_histogram(bins=50, fill="#35968CFF") +
+  labs(y="# New ORFs", x = "ORF Length (aa)") +
+  geom_text_npc(aes(npcx=0.9, npcy=0.9,label=paste0("Mean length:\n",round(mean(`Length (AAs)`)), " aa")),size=3) +
+  theme_bw() 
+
+
+new_orf_length_plot
+
+figure_s2 <- ggarrange(uorf_length_plot,
+          ggplot()+theme_void(),
+          ouorf_length_plot,ggplot()+theme_void(),
+                         new_orf_length_plot,
+                         ncol=5,  widths = c(1,0.05,1,0.05,1))
+ggsave(plot =figure_s2, filename = paste(results_dir,"Figure_S3.png", sep=""), dpi = 700, device = "png", width = 9, height = 3) 
+```
+
+
+## Coverage track plots
+### Load bedgraph data
+```{r include=FALSE}
+harr_min_nd <- read_tsv("/mnt/HDD2/colin/ribosome_footprint_profiling/alignment_tracks/merged/harr-nd.bedgraph",
+  col_names = F
+) %>% mutate(ribotype = "harr-nd")
+
+chx_bedgraph <- read_tsv("/mnt/HDD2/colin/ribosome_footprint_profiling/alignment_tracks/merged/riboseq_chx.p.site.transcriptome.bedgraph",
+  col_names = F
+) %>% mutate(ribotype = "chx")
+
+
+chx_full_bedgraph <- read_tsv("/mnt/HDD2/colin/ribosome_footprint_profiling/alignment_tracks/merged/chx.fullcov.site.transcriptome_bs0.bedgraph",
+  col_names = F
+) %>% mutate(ribotype = "chx_full")
+
+```
+### Extension example 1
+```{r}
+bedgraph_data <- bind_rows(harr_min_nd, chx_bedgraph,chx_full_bedgraph)
+
+range01 <- function(x) {
+  (x - min(x)) / (max(x) - min(x))
+}
+
+selected_transcript <- "XM_027423276.2"
+
+current_orf <- orftable_filtered %>%
+  filter(tid == selected_transcript) %>%
+  filter(orftype == "Extension" | orftype == "Annotated")
+current_orf
+
+harr_track_data <- bedgraph_data %>%
+  filter(X1 == selected_transcript) %>%
+  filter(ribotype == "harr-nd") %>%
+  filter(X2 <= max(current_orf$tstop) & X2 >= 0) %>%
+  mutate(corrected = ifelse(X4 < 0, 0, X4)) %>%
+  mutate(scale_bpm = range01(corrected)) 
+
+chx_p_scaled <- bedgraph_data %>%
+  filter(X1 == selected_transcript) %>%
+  filter(ribotype == "chx" ) %>%
+  filter(X2 <= max(current_orf$tstop) & X2 >= 0) %>%
+  mutate(scale_bpm = range01(X4)) 
+
+chx_full_scaled <- bedgraph_data %>%
+  filter(X1 == selected_transcript) %>%
+  filter(ribotype == "chx_full") %>%
+  filter(X2 <= max(current_orf$tstop) & X2 >= 0) %>%
+  mutate(scale_bpm = range01(X4)) 
+
+track_data <- bind_rows(harr_track_data, chx_p_scaled, chx_full_scaled)
+
+track_data <- track_data %>%
+  mutate(frame="NA") %>%
+  mutate(frame=ifelse((X2 >= min(current_orf$tcoord) & X2 <= current_orf$tstop[2] & ribotype == "chx" ), (X2 - current_orf$tcoord) %% 3, NA))
+
+harr_plot <- track_data %>%
+    filter(ribotype == "harr-nd") %>%
+ add_row(X1 = selected_transcript, X2 =0, X3 =1,X4=0, ribotype = "harr-nd", corrected=0, scale_bpm=0, .before = 1) %>%
+   ggplot(aes(x = X2, y = scale_bpm)) +
+   geom_bar(stat = "identity", position = "identity", alpha=1, fill="#404788FF") +
+  facet_zoom(xlim = c(min(current_orf$tcoord) - 10, max(current_orf$tcoord) + 10), zoom.size = 1, split = F) +
+  labs(
+    x = "Transcript coordinates (nts)",
+    y = "Ribo-seq (Scaled BPM)",
+    title = "",
+    subtitle = ""
+  ) +
+  theme_bw() +
+  theme(validate = FALSE) +
+  geom_text_npc(aes(npcx=0.95, npcy=0.95),label="HARR-ND",size=2)
+ggsave(filename = paste(results_dir,"Figure_3.2_B_harr.png", sep=""), width = 6, height = 4, device = "png", dpi = 700)
+
+chx_plot <- track_data %>%
+    filter(ribotype == "chx" | ribotype == "chx_full") %>%
+   ggplot(aes(x = X2, y = scale_bpm, fill=frame, alpha=ribotype)) +
+   geom_bar(stat = "identity", position = "identity") +
+  scale_fill_viridis() +
+  scale_alpha_discrete(range=c(1,0.3)) +
+  facet_zoom(xlim =  c(min(current_orf$tcoord) - 10, max(current_orf$tcoord) + 10), shrink = FALSE, zoom.size = 1) +
+  labs(
+    x = "Transcript coordinates (nts)",
+    y = "Ribo-seq (Scaled BPM)",
+    title = "",
+    subtitle = ""
+  ) +
+  theme_bw() +
+  theme(validate = FALSE, legend.position = "none") +
+  geom_text_npc(aes(npcx=0.95, npcy=0.95),label="CHX",size=2)
+
+ggsave(plot=chx_plot,filename = paste(results_dir,"Figure_3.2_B_chx.png", sep=""), width = 6, height = 4, device = "png", dpi = 700)
+
+harr_plot
+chx_plot
+
+```
+
+##  ORF length plot
+```{r}
+source(file="facetzoom2.R")
+safe_colorblind_palette <- c("#88CCEE", "#CC6677", "#888888", "#117733", "#332288", "#035968", 
+                             "#AA4499", "#999933", "#882255", "#661100", "#6699CC", "#888888")
+
+orf_length_plot <- table_s2 %>%
+  mutate(`ORF type` = fct_relevel(`ORF type`, levels =  "Extension", "Annotated", "Isoform", 
+                                  "Stop overlap","Start overlap","New","Downstream","Upstream")) %>%
+  #mutate(`ORF type` = fct_rev(`ORF type`)) %>%
+   #filter(`Length (AAs)` <= 1000) %>%
+  ggplot(aes(y=`Length (AAs)`, x=`ORF type`, fill = `ORF type`)) +
+  geom_boxplot(position = "dodge", size=0.2, outlier.size = 0.5) +
+  geom_jitter(size=0.1, alpha = 0.1) +
+  theme_bw() + 
+  scale_fill_manual(values=safe_colorblind_palette) +
+  theme(axis.text.x = element_text(angle=60, hjust = 1)) +
+  facet_zoom2(ylim = c(0,100)) +
+    labs(x="")
+
+orf_length_plot
+ggsave(plot = orf_length_plot, filename = paste(results_dir,"Figure_3A.png", sep=""), width = 6, height = 4, device = "png", dpi = 700)
+```
+
+```{r}
+ all_short_orfs <-table_s2 %>%
+ filter(`Length (AAs)` <= 100)
+ 
+table(all_short_orfs$`ORF type`) / sum(table(all_short_orfs$`ORF type`))
+
+
+table(all_short_orfs$`ORF type`)/table(table_s2$`ORF type`)
+
+table_s2 %>%
+ filter(`Length (AAs)` <= 100) %>%
+summarise(median(`Length (AAs)`))
+
+
+proportion_sorf <-table_s2 %>%
+  mutate(length_classification = case_when(`Length (AAs)` > 100 ~"> 100aa",
+         TRUE ~ "<=100aa")) %>%
+  mutate(length_classification = fct_rev(as.factor(length_classification))) %>%
+  filter(`ORF type` == "Upstream" | `ORF type` == "Start overlap" | `ORF type` == "New") %>%
+  ggplot(aes(x = `ORF type`, fill=length_classification)) +
+  geom_bar(position = "fill") +
+ 
+  scale_fill_manual(values=c("#FDE725FF", "#482677FF")) +
+  theme_bw() +
+  labs(x="", y= "Proportion of ORFs", fill="") +
+   theme(axis.text.x = element_text(angle=60, hjust = 1)) 
+proportion_sorf
+ggsave(plot = proportion_sorf, filename = paste(results_dir,"Figure_3B.png", sep=""), width = 3, height = 3.5, device = "png", dpi = 700)
+```
+
+## Amino acid frequencies
+```{r}
+
+fasta <- readAAStringSet("../../amino_acid_analysis/long_orfs_for_AA_freq.fasta")
+long_ORF <- colSums(alphabetFrequency(fasta)[,AA_STANDARD])/(sum(colSums(alphabetFrequency(fasta)[,AA_STANDARD])))
+
+fasta <- readAAStringSet("../../amino_acid_analysis/upstream_short_orfs_for_AA_freq.fasta")
+short_upstream_ORF <- colSums(alphabetFrequency(fasta)[,AA_STANDARD])/(sum(colSums(alphabetFrequency(fasta)[,AA_STANDARD])))
+
+fasta <- readAAStringSet("../../amino_acid_analysis/non_coding_orfs.fasta")
+short_ncRNA_ORF <- colSums(alphabetFrequency(fasta)[,AA_STANDARD])/(sum(colSums(alphabetFrequency(fasta)[,AA_STANDARD])))
+
+# plots
+amino_acid_plot_full <- bind_rows(long_ORF, short_upstream_ORF,short_ncRNA_ORF) %>% 
+  mutate(type=c("Annotated > 100aa","uORFs <= 100aa","New <= 100aa")) %>%
+  pivot_longer(names_to = "AA", values_to="Freq", cols=-contains("type")) %>%
+  mutate(aa_name=AMINO_ACID_CODE[AA]) %>%
+ggplot(aes(x=aa_name,y=Freq, fill=type)) +
+  geom_col(width=0.6, position = position_dodge(width=0.6)) +
+  theme_bw() +
+  labs(x="",y="Frequency", fill="") +
+  scale_fill_manual(values=c("#CC79A7","#35968CFF","#999933")) +
+  theme(legend.position = "right")
+
+amino_acid_plot_selected <- bind_rows(long_ORF, short_upstream_ORF,short_ncRNA_ORF) %>% 
+  mutate(type=c("Annotated > 100aa","uORFs <= 100aa","New <= 100aa")) %>%
+  pivot_longer(names_to = "AA", values_to="Freq", cols=-contains("type")) %>%
+  mutate(aa_name=AMINO_ACID_CODE[AA]) %>%
+  filter(aa_name!="His" & aa_name != "Leu" & aa_name != "Ser" & aa_name != "Val" & aa_name != "Thr" & aa_name != "Phe") %>%
+ggplot(aes(x=aa_name,y=Freq, fill=type)) +
+  geom_col(width=0.6, position = position_dodge(width=0.6)) +
+  theme_bw() +
+  labs(x="",y="Frequency", fill="") +
+  scale_fill_manual(values=c("#CC6677","#035968","#999933")) +
+  theme(legend.position = "right")
+
+amino_acid_plot_full
+ggsave(plot = amino_acid_plot_selected, filename = paste(results_dir,"Figure_S4.png", sep=""), width = 7, height = 3.5, device = "png", dpi = 700)
+amino_acid_plot_selected
+ggsave(plot = amino_acid_plot_selected, filename = paste(results_dir,"Figure_3C.png", sep=""), width = 7, height = 3.5, device = "png", dpi = 700)
+```
+

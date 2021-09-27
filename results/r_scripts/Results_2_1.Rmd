@@ -1,0 +1,582 @@
+---
+title: "Section 2.1 Results"
+output: html_notebook
+---
+
+# Introduction
+
+This note book generates the figures for section 3.1 of the manuscript. 
+
+### Load libraries & functions
+
+```{r include=FALSE}
+package_list <- c(
+  "ShortRead", "tidyverse", "ggsci", "ggpubr",
+  "cowplot", "patchwork", "readr", "writexl", "viridis","patchwork"
+)
+
+lapply(package_list, require, character.only = TRUE)
+
+results_dir <- "/mnt/HDD2/colin/ribosome_footprint_profiling/results/section2.1/"
+if (!dir.exists(results_dir)) {
+  dir.create(results_dir, recursive = TRUE)
+}
+```
+
+# Impact of TS on cell density
+```{r}
+cell_density_data <- read_delim("/mnt/HDD2/colin/ribosome_footprint_profiling/data/cell_density_data.txt", 
+                                "\t", escape_double = FALSE, trim_ws = TRUE)
+
+cd_summary <- cell_density_data %>%
+  group_by(Experiment, condition) %>%
+  summarise(mean_density= mean(cell_density)) %>%
+  group_by(Experiment) 
+
+cd_summary %>%
+  filter(Experiment =="Elongation") %>%
+  summarise(percent_cd_diff = 100- (mean_density[condition == "TS"]/mean_density[condition == "NTS"])*100)
+
+cd_summary %>%
+  filter(Experiment =="Initiation") %>%
+  summarise(percent_cd_diff = 100- (mean_density[condition == "TS"]/mean_density[condition == "NTS"])*100)
+```
+
+## Cell density plot
+```{r}
+cell_density_plot <- ggboxplot(cell_density_data, x = "condition", y= "cell_density", color="black", add="jitter", fill="condition") +
+  facet_wrap(~Experiment, ncol = 2 ) +
+  theme_bw() +
+  stat_compare_means(method="t.test", label.y=2250000) +
+  labs(x="",y="Cells/ml", fill="") +
+  theme(legend.position="none") +
+  scale_y_continuous(labels = function(x) format(x, scientific = TRUE)) +
+  scale_fill_manual(values = c("#D55E00", "#56B4E9")) 
+ggsave(plot = cell_density_plot, filename = paste(results_dir, "Figure_S1.png", sep = ""), width =6, height = 4, device = "png", dpi = 700)
+cell_density_plot
+```
+
+
+# Analysis of read preprocessing 
+## Ribo-seq
+```{r}
+samples <- c(
+  "nts_r1", "nts_r2", "nts_r3", "nts_r4",
+  "ts_r1", "ts_r2", "ts_r3", "ts_r4"
+)
+
+count_path <- "/mnt/HDD2/colin/ribosome_footprint_profiling/results/read_counts/"
+
+positions <- c(
+  "Cutadapt", "rRNA", "snoRNA", "tRNA", "<28nt or >32nt", "Retained"
+)
+```
+
+### Cycloheximide
+```{r include=FALSE}
+riboseq_chx_raw <- read_delim(paste0(count_path, "riboseq_chx.raw.counts"),
+  "|",
+  escape_double = FALSE, trim_ws = TRUE
+) %>%
+  mutate(sample_name = samples, ribotype = "Cycloheximide", stage = "raw")
+
+riboseq_chx_trimmed <- read_delim(paste0(count_path, "riboseq_chx.trimmed.counts"),
+  "|",
+  escape_double = FALSE, trim_ws = TRUE
+) %>%
+  mutate(sample_name = samples, ribotype = "Cycloheximide", stage = "trimmed")
+
+riboseq_chx_rRNA <- read_delim(paste0(count_path, "riboseq_chx.rRNA_filter.counts"),
+  "|",
+  escape_double = FALSE, trim_ws = TRUE
+) %>%
+  mutate(sample_name = samples, ribotype = "Cycloheximide", stage = "rRNA_retained")
+
+riboseq_chx_tRNA <- read_delim(paste0(count_path, "riboseq_chx.tRNA_filter.counts"),
+  "|",
+  escape_double = FALSE, trim_ws = TRUE
+) %>%
+  mutate(sample_name = samples, ribotype = "Cycloheximide", stage = "tRNA_retained")
+
+riboseq_chx_snoRNA <- read_delim(paste0(count_path, "riboseq_chx.snoRNA_filter.counts"),
+  "|",
+  escape_double = FALSE, trim_ws = TRUE
+) %>%
+  mutate(sample_name = samples, ribotype = "Cycloheximide", stage = "snoRNA_retained")
+
+riboseq_chx_passed <- read_delim(paste0(count_path, "riboseq_chx.final.counts"),
+  "|",
+  escape_double = FALSE, trim_ws = TRUE
+) %>%
+  mutate(sample_name = samples, ribotype = "Cycloheximide", stage = "pass")
+
+chx_counts <- bind_rows(
+  riboseq_chx_raw,
+  riboseq_chx_trimmed,
+  riboseq_chx_rRNA,
+  riboseq_chx_tRNA,
+  riboseq_chx_snoRNA,
+  riboseq_chx_passed
+) %>%
+  select(
+    sample_name,
+    ribotype, stage,
+    raw_read_number
+  ) %>%
+  pivot_wider(id_cols = c(sample_name, ribotype), names_from = stage, values_from = raw_read_number)
+
+cycloheximide <- chx_counts %>%
+  mutate(
+    Cutadapt = raw - trimmed,
+    rRNA = trimmed - rRNA_retained,
+    snoRNA = rRNA_retained - snoRNA_retained,
+    tRNA = snoRNA_retained - tRNA_retained,
+    `<28nt or >32nt` = tRNA_retained - pass,
+    Retained = pass
+  ) %>%
+  select(sample_name, ribotype, c("Cutadapt", "rRNA", "snoRNA", "tRNA", "<28nt or >32nt", "Retained"))
+```
+
+### Harringtonine
+```{r include=FALSE}
+riboseq_harr_raw <- read_delim(paste0(count_path, "riboseq_harr.raw.counts"),
+  "|",
+  escape_double = FALSE, trim_ws = TRUE
+) %>%
+  mutate(sample_name = samples, ribotype = "Harringtonine", stage = "raw")
+
+riboseq_harr_trimmed <- read_delim(paste0(count_path, "riboseq_harr.trimmed.counts"),
+  "|",
+  escape_double = FALSE, trim_ws = TRUE
+) %>%
+  mutate(sample_name = samples, ribotype = "Harringtonine", stage = "trimmed")
+
+riboseq_harr_rRNA <- read_delim(paste0(count_path, "riboseq_harr.rRNA_filter.counts"),
+  "|",
+  escape_double = FALSE, trim_ws = TRUE
+) %>%
+  mutate(sample_name = samples, ribotype = "Harringtonine", stage = "rRNA_retained")
+
+riboseq_harr_tRNA <- read_delim(paste0(count_path, "riboseq_harr.tRNA_filter.counts"),
+  "|",
+  escape_double = FALSE, trim_ws = TRUE
+) %>%
+  mutate(sample_name = samples, ribotype = "Harringtonine", stage = "tRNA_retained")
+
+riboseq_harr_snoRNA <- read_delim(paste0(count_path, "riboseq_harr.snoRNA_filter.counts"),
+  "|",
+  escape_double = FALSE, trim_ws = TRUE
+) %>%
+  mutate(sample_name = samples, ribotype = "Harringtonine", stage = "snoRNA_retained")
+
+riboseq_harr_passed <- read_delim(paste0(count_path, "riboseq_harr.final.counts"),
+  "|",
+  escape_double = FALSE, trim_ws = TRUE
+) %>%
+  mutate(sample_name = samples, ribotype = "Harringtonine", stage = "pass")
+
+harr_counts <- bind_rows(
+  riboseq_harr_raw,
+  riboseq_harr_trimmed,
+  riboseq_harr_rRNA,
+  riboseq_harr_tRNA,
+  riboseq_harr_snoRNA,
+  riboseq_harr_passed
+) %>%
+  select(
+    sample_name,
+    ribotype, stage,
+    raw_read_number
+  ) %>%
+  pivot_wider(id_cols = c(sample_name, ribotype), names_from = stage, values_from = raw_read_number)
+
+harringtonine <- harr_counts %>%
+  mutate(
+    Cutadapt = raw - trimmed,
+    rRNA = trimmed - rRNA_retained,
+    snoRNA = rRNA_retained - snoRNA_retained,
+    tRNA = snoRNA_retained - tRNA_retained,
+    `<28nt or >32nt` = tRNA_retained - pass,
+    Retained = pass
+  ) %>%
+  select(sample_name, ribotype, c("Cutadapt", "rRNA", "snoRNA", "tRNA", "<28nt or >32nt", "Retained"))
+```
+### No drug
+
+```{r include=FALSE}
+riboseq_nd_raw <- read_delim(paste0(count_path, "riboseq_nd.raw.counts"),
+  "|",
+  escape_double = FALSE, trim_ws = TRUE
+) %>%
+  mutate(sample_name = samples, ribotype = "No drug", stage = "raw")
+
+riboseq_nd_trimmed <- read_delim(paste0(count_path, "riboseq_nd.trimmed.counts"),
+  "|",
+  escape_double = FALSE, trim_ws = TRUE
+) %>%
+  mutate(sample_name = samples, ribotype = "No drug", stage = "trimmed")
+
+riboseq_nd_rRNA <- read_delim(paste0(count_path, "riboseq_nd.rRNA_filter.counts"),
+  "|",
+  escape_double = FALSE, trim_ws = TRUE
+) %>%
+  mutate(sample_name = samples, ribotype = "No drug", stage = "rRNA_retained")
+
+riboseq_nd_tRNA <- read_delim(paste0(count_path, "riboseq_nd.tRNA_filter.counts"),
+  "|",
+  escape_double = FALSE, trim_ws = TRUE
+) %>%
+  mutate(sample_name = samples, ribotype = "No drug", stage = "tRNA_retained")
+
+riboseq_nd_snoRNA <- read_delim(paste0(count_path, "riboseq_nd.snoRNA_filter.counts"),
+  "|",
+  escape_double = FALSE, trim_ws = TRUE
+) %>%
+  mutate(sample_name = samples, ribotype = "No drug", stage = "snoRNA_retained")
+
+riboseq_nd_passed <- read_delim(paste0(count_path, "riboseq_nd.final.counts"),
+  "|",
+  escape_double = FALSE, trim_ws = TRUE
+) %>%
+  mutate(sample_name = samples, ribotype = "No drug", stage = "pass")
+
+nd_counts <- bind_rows(
+  riboseq_nd_raw,
+  riboseq_nd_trimmed,
+  riboseq_nd_rRNA,
+  riboseq_nd_tRNA,
+  riboseq_nd_snoRNA,
+  riboseq_nd_passed
+) %>%
+  select(
+    sample_name,
+    ribotype, stage,
+    raw_read_number
+  ) %>%
+  pivot_wider(id_cols = c(sample_name, ribotype), names_from = stage, values_from = raw_read_number)
+
+
+
+nd <- nd_counts %>%
+  mutate(
+    Cutadapt = raw - trimmed,
+    rRNA = trimmed - rRNA_retained,
+    snoRNA = rRNA_retained - snoRNA_retained,
+    tRNA = snoRNA_retained - tRNA_retained,
+    `<28nt or >32nt` = tRNA_retained - pass,
+    Retained = pass
+  ) %>%
+  select(sample_name, ribotype, c("Cutadapt", "rRNA", "snoRNA", "tRNA", "<28nt or >32nt", "Retained"))
+```
+
+```{r}
+fn <- paste(results_dir, "Table S2.xlsx",
+  sep = ""
+)
+
+suppressMessages(if (file.exists(fn)) {
+  file.remove(fn)
+})
+
+write_xlsx(list(Cycloheximide = cycloheximide, Harrintonine = harringtonine, `No Drug` = nd),
+  path = fn,
+  format_headers = TRUE
+)
+
+bind_rows(cycloheximide, harringtonine, nd) %>%
+  mutate(sample_name = case_when(
+    sample_name == "nts_r1" ~ "NTS R1",
+    sample_name == "nts_r2" ~ "NTS R2",
+    sample_name == "nts_r3" ~ "NTS R3",
+    sample_name == "nts_r4" ~ "NTS R4",
+    sample_name == "ts_r1" ~ "TS R1",
+    sample_name == "ts_r2" ~ "TS R2",
+    sample_name == "ts_r3" ~ "TS R3",
+    sample_name == "ts_r4" ~ "TS R4",
+  )) %>%
+  pivot_longer(cols = c("Cutadapt", "rRNA", "snoRNA", "tRNA", "<28nt or >32nt", "Retained"), values_to = "count", names_to = "stage") %>%
+  ggplot(aes(x = sample_name, y = count, fill = factor(stage, levels = positions))) +
+  geom_bar(stat = "identity", position = "fill") +
+  theme_bw() +
+  scale_fill_brewer(palette = "Paired") +
+  labs(x = "", y = "Proportion of reads", fill = "") +
+  facet_wrap(~ribotype, nrow = 3) +
+  scale_fill_viridis(discrete = T)
+
+ggsave(filename = paste(results_dir, "Figure_S2.png", sep = ""), width = 7, height = 8, device = "png", dpi = 700)
+```
+### Summary of reads per dataset
+```{r}
+bind_rows(chx_counts, harr_counts, nd_counts) %>%
+  group_by(ribotype) %>%
+  summarise(mean(raw))
+
+bind_rows(chx_counts, harr_counts, nd_counts) %>%
+  group_by(ribotype) %>%
+  summarise(mean(1 - ((raw - tRNA_retained) / raw)))
+
+
+bind_rows(chx_counts, harr_counts, nd_counts) %>%
+  group_by(ribotype) %>%
+  summarise(sum(pass))
+```
+## RNASeq
+```{r}
+rnaseq_raw <- read_delim(paste0(count_path, "rnaseq.raw.counts"),
+  "|",
+  escape_double = FALSE, trim_ws = TRUE
+) %>%
+  mutate(sample_name = samples, ribotype = "rnaseq", stage = "raw")
+
+
+rnaseq_preprocessed <- read_delim(paste0(count_path, "rnaseq.preprocessed.counts"),
+  "|",
+  escape_double = FALSE, trim_ws = TRUE
+) %>%
+  mutate(sample_name = samples, ribotype = "rnaseq", stage = "pass")
+
+rnaseq_counts <- bind_rows(
+  rnaseq_raw, 
+  rnaseq_preprocessed
+) %>%
+  select(
+    sample_name,
+    ribotype, 
+    stage,
+    raw_read_number
+  ) %>%
+  pivot_wider(id_cols = c(sample_name, ribotype), names_from = stage, values_from = raw_read_number)
+
+rnaseq <- rnaseq_counts %>%
+  mutate(
+    Cutadapt = raw - pass,
+    
+    Retained = pass
+  ) %>%
+  select(sample_name, ribotype, c("Cutadapt", "Retained"))
+
+write_xlsx(list(`RNA-seq` = rnaseq),
+  path = fn,
+  format_headers = TRUE
+)
+
+
+
+rnaseq_counts %>%
+  summarise(mean(raw))
+
+rnaseq %>%
+  summarise(mean(Cutadapt), mean(Retained))
+```
+# RPF selected reads
+```{r}
+read_dir <- "cat ../ribosome_footprint_profiling/data/"
+read_dir2 <- "/preproccessed_data/tRNA_filter/"
+sample <- "nts_r2"
+filter_stage <- ".tRNA.Unmapped.out.mate1"
+awk_command <- " | awk '{if(NR%4==2) print length($1)}' | sort -n | uniq -c > read_length.txt"
+
+sample_labels <- c(
+  "nts_r1", "nts_r2", "nts_r3", "nts_r4",
+  "ts_r1", "ts_r2", "ts_r3", "ts_r4"
+)
+treatments <- c("riboseq_chx", "riboseq_harr", "riboseq_nd")
+
+read_len_dist <- data.frame()
+for (j in treatments) {
+  for (i in sample_labels) {
+    sample <- i
+    ribotype <- j
+    read_dist_command <- paste0(read_dir, ribotype, read_dir2, sample, filter_stage, awk_command)
+    
+    system(read_dist_command)
+    sample_df <- read_delim("read_length.txt", col_names = F, delim = " ") %>%
+      mutate(sample = sample, ribotype = ribotype, readlength = as.numeric(X2), count = as.numeric(X1))
+    read_len_dist <- bind_rows(read_len_dist, sample_df)
+  }
+}
+
+rnaseq_dist_command <- "cat ../ribosome_footprint_profiling/data/rnaseq_se/mapped/merged/rnaseq_se.fastq | awk '{if(NR%4==2) print length($1)}' | sort -n | uniq -c > read_length.txt"
+system(rnaseq_dist_command)
+
+sample_rnaseq <- read_delim("read_length.txt", col_names = F, delim = " ") %>%
+      mutate(sample = "rnaseq", ribotype = "RNA-seq", readlength = as.numeric(X2), count = as.numeric(X1))
+    read_len_dist <- bind_rows(read_len_dist, sample_rnaseq)
+```
+
+```{r}
+labels <- c(riboseq_chx = "Ribo-seq (CHX)", riboseq_harr = "Ribo-seq (HARR)", riboseq_nd = "Ribo-seq (ND)", `RNA-seq`="RNA-seq")
+
+read_lengths_hist_plot <- read_len_dist %>%
+  filter(readlength >= 25 & readlength <= 34) %>%
+  mutate(ribotype = factor(ribotype, levels=c("riboseq_harr", "riboseq_chx", "riboseq_nd", "RNA-seq"))) %>%
+  group_by(ribotype) %>%
+  mutate(total = count) %>%
+  ggplot(aes(x = readlength, y = total, fill = ifelse(readlength > 27 & readlength < 32 & ribotype != "RNA-seq", "RPF", "RNA"))) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~ribotype, ncol = 2, labeller = labeller(ribotype = labels),scales = "free_x") +
+  labs(y = "Number of reads", x = "Read length (nts)", fill = "") +
+  scale_y_continuous(breaks = c(20000000, 40000000, 60000000), labels = c("20 million", "40 million", "60 million")) +
+  scale_x_continuous(breaks = 25:34) +
+  theme_bw() +
+  theme(strip.background = element_rect(fill="white"),legend.position = "bottom") +
+  scale_fill_viridis( discrete = T,direction = -1) 
+
+read_lengths_hist_plot
+ggsave(plot=read_lengths_hist_plot, filename = paste(results_dir, "Figure_3.1_C.png", sep = ""), width =5, height = 5, device = "png", dpi = 700)
+```
+
+```{r}
+read_len_dist %>% 
+  mutate(sample = case_when(
+    sample == "nts_r1" ~ "NTS R1",
+    sample == "nts_r2" ~ "NTS R2",
+    sample == "nts_r3" ~ "NTS R3",
+    sample == "nts_r4" ~ "NTS R4",
+    sample == "ts_r1" ~ "TS R1",
+    sample == "ts_r2" ~ "TS R2",
+    sample == "ts_r3" ~ "TS R3",
+    sample == "ts_r4" ~ "TS R4",
+  ),
+  ribotype = case_when(
+    ribotype == "riboseq_chx" ~ "Cycloheximide",
+    ribotype == "riboseq_harr" ~ "Harringtonine",
+    ribotype == "riboseq_nd" ~ "No drug",
+  )) %>%
+  filter(readlength >= 25 & readlength <=34) %>%
+  group_by(sample) %>%
+  ggplot(aes(x=readlength, y=count,fill = ifelse(readlength > 27 & readlength < 32, "Retained", "Removed") )) +
+  geom_bar(stat="identity") +
+  labs(y = "Number of reads", x = "Read length (nts)", fill = "") +
+  scale_y_continuous(breaks = c(1000000, 5000000, 10000000), labels = c("1 million", "5 million", "10 million")) +
+  scale_x_continuous(breaks = 25:34) +
+  theme_bw() +
+  scale_fill_viridis(discrete = T,direction = -1) +
+  facet_wrap(~ribotype + sample, ncol = 4)
+```
+
+## Phasing
+```{r include=FALSE}
+phasing_path <- "/mnt/HDD2/colin/ribosome_footprint_profiling/rpf_psite_analysis/"
+
+riboseq_chx_phasing <- read_delim(paste0(phasing_path, "riboseq_chx_phasing.txt"),
+  "\t",
+  escape_double = FALSE, trim_ws = TRUE,
+  skip = 32
+) %>%
+  summarise(
+    `0` = mean(phase0),
+    `1` = mean(phase1),
+    `2` = mean(phase2)
+  ) %>%
+  mutate(ribotype = "Ribo-seq (CHX)")
+
+riboseq_harr_phasing <- read_delim(paste0(phasing_path, "riboseq_harr_phasing.txt"),
+  "\t",
+  escape_double = FALSE, trim_ws = TRUE,
+  skip = 32,
+) %>%
+  summarise(
+    `0` = mean(phase0),
+    `1` = mean(phase1),
+    `2` = mean(phase2)
+  ) %>%
+  mutate(ribotype = "Ribo-seq (HARR)")
+
+riboseq_nd_phasing <- read_delim(paste0(phasing_path, "riboseq_nd_phasing.txt"),
+  "\t",
+  escape_double = FALSE, trim_ws = TRUE,
+  skip = 32
+) %>%
+  summarise(
+    `0` = mean(phase0),
+    `1` = mean(phase1),
+    `2` = mean(phase2)
+  ) %>%
+  mutate(ribotype = "Ribo-seq (ND)")
+
+rnaseq_phasing <- read_delim(paste0(phasing_path, "rnaseq_se_phasing.txt"),
+  "\t",
+  escape_double = FALSE, trim_ws = TRUE,
+  skip = 32
+) %>%
+  summarise(
+    `0` = mean(phase0),
+    `1` = mean(phase1),
+    `2` = mean(phase2)
+  ) %>%
+  mutate(ribotype = "RNA-seq")
+```
+
+## Plot the phasing figure 
+```{r}
+phasing_bar_plot <- bind_rows(riboseq_chx_phasing, riboseq_harr_phasing, riboseq_nd_phasing, rnaseq_phasing) %>%
+  pivot_longer(cols = c(`0`, `1`, `2`), values_to = "Proportion") %>%
+  mutate(ribotype = factor(ribotype, levels=c("Ribo-seq (HARR)", "Ribo-seq (CHX)", "Ribo-seq (ND)", "RNA-seq"))) %>%
+  ggplot(aes(x = name, y = Proportion, fill = name)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~ribotype,ncol = 2) +
+  labs(x = "Frame", y = "Proportion of RPFs", fill = "Frame") +
+  scale_fill_viridis(discrete = T) +
+  theme_bw() +
+  theme(strip.background = element_rect(fill="white"), legend.position = "bottom")
+
+phasing_bar_plot
+
+ggsave(plot=phasing_bar_plot, filename = paste(results_dir, "Figure_1E.png", sep = ""), width =5, height = 5, device = "png", dpi = 700)
+```
+## Enrichment of RPFs in the harringtonine data at annotated TIS
+Demonstration that harringtonine has a higher occupancy for annotation TIS in comparison to CHX and No-drug
+```{r}
+chx_metagene <- read_tsv("../ribosome_footprint_profiling/orfrater_analysis/chx/metagene.txt") %>% 
+  mutate(ribotype="chx")
+harr_metagene <- read_tsv("../ribosome_footprint_profiling/orfrater_analysis/harr/metagene.txt") %>% 
+  mutate(ribotype="harr")
+nd_metagene <- read_tsv("../ribosome_footprint_profiling/orfrater_analysis/nd/metagene.txt") %>% 
+  mutate(ribotype="nd")
+metagene <- bind_rows(chx_metagene,harr_metagene, nd_metagene)
+
+metagene <- metagene %>%
+    mutate(Means = rowMeans(.[,3:6]))
+
+metagene <- metagene %>% 
+  mutate(Frame = case_when(position %% 3 == 0 ~ "0",
+                           position %% 3 == 1 ~ "1",
+                           position %% 3 == 2 ~ "2"))
+
+metagene$region <- factor(metagene$region,      # Reordering group factor levels
+                         levels = c("START", "CDS", "STOP"))
+
+labels <- c(chx="Cycloheximide", harr="Harringtonine", nd="No drug")
+
+safe_colorblind_palette <- c("#009E73", "#D55E00", "#999999")
+
+start_codon_plot <- metagene %>%
+  filter(region=="START") %>%
+  filter(position <= 50) %>%
+  mutate(ribotype = case_when(
+    ribotype=="chx" ~ "Cycloheximide",
+    ribotype=="harr" ~ "Harringtonine",
+    ribotype=="nd" ~ "No drug"
+  )) %>%
+  mutate(ribotype =  factor(ribotype,levels=c("Harringtonine", "Cycloheximide","No drug"))) %>%
+  ggplot(aes(x=position, y=Means, color=ribotype),alpha=ribotype) +
+  geom_line(size=0.4)+
+  geom_point(size=0.8) +
+ labs(y="Averge RPF density",color="", x="Transcript position") +
+  theme_bw() +
+  theme(legend.position = "top") +
+  scale_color_viridis(discrete = T) +
+#scale_color_manual(values=safe_colorblind_palette,
+#                     limits = c("chx", "harr", "nd"),
+#   labels = c("Cycloheximide", "Harringtonine", "No drug")) +
+scale_alpha_manual(values = c(0.6, 1,0.6)) 
+start_codon_plot
+ggsave(filename= paste(results_dir,"Figure_1F.png", sep=""), width = 6, height = 4, device='png', dpi=700)
+```
+
+# Knit to R script
+```{r}
+knitr::purl("Results_2_1.Rmd")
+```
+
