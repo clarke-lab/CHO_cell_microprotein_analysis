@@ -1,11 +1,13 @@
 ---
 title: "Section 2.1 Results"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 # Introduction
 
-This note book generates the figures for section 3.1 of the manuscript. 
+This note book generates the figures for section 2.1 of the manuscript. 
 
 ### Load libraries & functions
 
@@ -42,6 +44,24 @@ cd_summary %>%
 cd_summary %>%
   filter(Experiment == "Initiation") %>%
   summarise(percent_cd_diff = 100 - (mean_density[condition == "TS"] / mean_density[condition == "NTS"]) * 100)
+
+table_s1 <- cell_density_data %>%
+  pivot_wider(names_from= c(condition),values_from=cell_density)
+
+fn <- paste(results_dir, "Table S1.xlsx",
+  sep = ""
+)
+
+suppressMessages(if (file.exists(fn)) {
+  file.remove(fn)
+})
+
+write_xlsx(list(
+  Cell_density=table_s1
+),
+path = fn,
+format_headers = TRUE
+)
 ```
 
 ## Cell density plot
@@ -257,8 +277,6 @@ nd_counts <- bind_rows(
   ) %>%
   pivot_wider(id_cols = c(sample_name, ribotype), names_from = stage, values_from = raw_read_number)
 
-
-
 nd <- nd_counts %>%
   mutate(
     Cutadapt = raw - trimmed,
@@ -271,20 +289,7 @@ nd <- nd_counts %>%
   select(sample_name, ribotype, c("Cutadapt", "rRNA", "snoRNA", "tRNA", "<28nt or >32nt", "Retained"))
 ```
 
-```{r}
-fn <- paste(results_dir, "Table S2.xlsx",
-  sep = ""
-)
-
-suppressMessages(if (file.exists(fn)) {
-  file.remove(fn)
-})
-
-write_xlsx(list(Cycloheximide = cycloheximide, Harrintonine = harringtonine, `No Drug` = nd),
-  path = fn,
-  format_headers = TRUE
-)
-
+```{r fig.height=5, fig.width=7}
 bind_rows(cycloheximide, harringtonine, nd) %>%
   mutate(sample_name = case_when(
     sample_name == "nts_r1" ~ "NTS R1",
@@ -356,10 +361,6 @@ rnaseq <- rnaseq_counts %>%
   ) %>%
   select(sample_name, ribotype, c("Cutadapt", "Retained"))
 
-write_xlsx(list(`RNA-seq` = rnaseq),
-  path = fn,
-  format_headers = TRUE
-)
 
 
 
@@ -369,6 +370,24 @@ rnaseq_counts %>%
 rnaseq %>%
   summarise(mean(Cutadapt), mean(Retained))
 ```
+```{r}
+
+fn <- paste(results_dir, "Table S2.xlsx",
+  sep = ""
+)
+
+suppressMessages(if (file.exists(fn)) {
+  file.remove(fn)
+})
+
+write_xlsx(list(Cycloheximide = cycloheximide, Harrintonine = harringtonine, `No Drug` = nd, `RNA-seq` = rnaseq),
+  path = fn,
+  format_headers = TRUE
+)
+
+```
+
+
 # RPF selected reads
 ```{r include=FALSE}
 length_distribution_files <- fs::dir_ls("../read_length_distribution/", 
@@ -398,7 +417,7 @@ length_distirbution_data <- length_distribution_files %>%
 table(length_distirbution_data$ribotype)
 ```
 
-```{r}
+```{r fig.height=5, fig.width=5}
 labels <- c(riboseq_chx = "Ribo-seq (CHX)", riboseq_harr = "Ribo-seq (HARR)", riboseq_nd = "Ribo-seq (ND)", `RNA-seq` = "RNA-seq")
 
 read_lengths_hist_plot <- length_distirbution_data %>%
@@ -417,11 +436,11 @@ read_lengths_hist_plot <- length_distirbution_data %>%
   scale_fill_viridis(discrete = T, direction = -1)
 
 read_lengths_hist_plot
-ggsave(plot = read_lengths_hist_plot, filename = paste(results_dir, "Figure_3.1_C.png", sep = ""), width = 5, height = 5, device = "png", dpi = 700)
+ggsave(plot = read_lengths_hist_plot, filename = paste(results_dir, "Figure_1D.png", sep = ""), width = 5, height = 5, device = "png", dpi = 700)
 ```
 ## Phasing
 ```{r include=FALSE}
-phasing_path <- "/mnt/HDD2/colin/ribosome_footprint_profiling/rpf_psite_analysis/"
+phasing_path <- "../../rpf_psite_analysis/"
 
 riboseq_chx_phasing <- read_delim(paste0(phasing_path, "riboseq_chx_phasing.txt"),
   "\t",
