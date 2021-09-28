@@ -122,9 +122,9 @@ suppressWarnings(
           )
           )
 
-table_s2 <- left_join(orftable_filtered, CriGri_PICRH_1_0_annotation, by="tfam") 
+table_s3 <- left_join(orftable_filtered, CriGri_PICRH_1_0_annotation, by="tfam") 
 
-table_s2 <-table_s2 %>%
+table_s3 <-table_s3 %>%
   dplyr::select(
     `ORF-RATER name` = orfname,
     `ORF type` = orftype,
@@ -145,11 +145,11 @@ table_s2 <-table_s2 %>%
     `Genomic stop position` =  tstop) %>%
   arrange(-`ORF-RATER score`)
 
-write_xlsx(list(ORFs = table_s2),
+write_xlsx(list(ORFs = table_s3),
   path = paste(results_dir,"Table S3.xlsx", sep=""),
   format_headers = TRUE)
 
-save(table_s2, file = paste(results_dir,"results_2_2.RData", sep=""))
+save(table_s3, file = paste(results_dir,"results_2_2.RData", sep=""))
 
 
 ## output ORF lists for different analyses
@@ -158,7 +158,7 @@ print("Outputting ORF lists for downstream analysis")
 # 1. amino acid frequencies
 print("--Amino acid analysis--")
 # annotated PCGs
-long_orfs <- table_s2 %>%
+long_orfs <- table_s3 %>%
   filter(`Length (AAs)` > 100) %>%
   filter(`ORF type` == "Annotated") 
 write(long_orfs$`ORF-RATER name`, file=paste0("orf_lists/long_orfs_for_AA_freq.txt"))
@@ -168,7 +168,7 @@ paste0(length(long_orfs$`ORF-RATER name`),
 
 
 # non-coding RNA ORFs 
-new_lncrna_short_orfs <-table_s2 %>% 
+new_lncrna_short_orfs <-table_s3 %>% 
   filter(`Length (AAs)` <= 100) %>%
   filter(`ORF type` == "New") %>%
   filter(str_detect(`Transcript ID`, "XR|NR"))
@@ -179,7 +179,7 @@ paste0(length(new_lncrna_short_orfs$`ORF-RATER name`),
 
 
 # upstream short ORFs
-upstream_short_orfs <-table_s2 %>% 
+upstream_short_orfs <-table_s3 %>% 
   filter(`Length (AAs)` <= 100) %>%
   filter(`ORF type` == "Upstream" | `ORF type` == "Start overlap") 
 
@@ -193,7 +193,7 @@ print("--Differential expression--")
 # where there are multiple new-transcripts take the longest
 # this is for plastid counting requirment for 1 ORF per transcript
 # select new ORFs on non-coding RNAs onle
-selected_new_for_de <- table_s2 %>% 
+selected_new_for_de <- table_s3 %>% 
   filter(`ORF type` == "New") %>% 
   filter(str_detect(`ORF-RATER name`, "NR|XR")) %>%
   #filter(AAlen >= 5 & AAlen <= 100) %>%
@@ -209,7 +209,7 @@ paste0(length(selected_new_for_de$`ORF-RATER name`),
 
 # 3. Proteomics
 print("--Proteomics--")
-selected_for_proteomics <- table_s2 %>%
+selected_for_proteomics <- table_s3 %>%
   filter(`ORF type` != "Annotated" & `ORF type` != "Isoform" & `ORF type` != "Extension")
 write(selected_for_proteomics$`ORF-RATER name`, file="orf_lists/orfs_for_proteomics.txt")
 paste0(length(selected_for_proteomics$`ORF-RATER name`), 
