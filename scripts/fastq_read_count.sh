@@ -44,7 +44,19 @@ do
 done
 
 
+mkdir results/read_length_distribution
 
-
-
-
+# 2. count read length distributions
+for seqtype in riboseq_chx riboseq_harr riboseq_nd rnaseq_se
+do  
+    if [ $seqtype = "rnaseq_se" ]; then
+                cat data/$seqtype/mapped/merged/rnaseq_se.fastq | \
+                awk '{if(NR%4==2) print length($1)}' | sort -n | uniq -c > results/read_length_distribution/$seqtype.txt
+    else
+        for sample in nts_r1 nts_r2 nts_r3 nts_r4 ts_r1 ts_r2 ts_r3 ts_r4
+        do
+                cat data/$seqtype/preproccessed_data/tRNA_filter/$sample.tRNA.Unmapped.out.mate1 | \
+                awk '{if(NR%4==2) print length($1)}' | sort -n | uniq -c > results/read_length_distribution/$seqtype.$sample.txt
+        done
+    fi
+done
