@@ -186,19 +186,6 @@ ggsave(plot = riboseq_cor_rnaseq_volcano_plot, filename = paste(results_dir, "Fi
 Here genes that are altered at the level of translation are identified. Only those genes with 10 counts in both the riboseq and rnaseq are included in the analysis
 
 
-## QC PCA
-```{r}
-pcaData <- plotPCA(vsd, intgroup = c("condition", "assay"), returnData = TRUE)
-percentVar <- round(100 * attr(pcaData, "percentVar"))
-deseq_sample_pca <- ggplot(pcaData, aes(PC1, PC2, color = condition, shape = assay)) +
-  geom_point(size = 3) +
-  xlab(paste0("PC1: ", percentVar[1], "% variance")) +
-  ylab(paste0("PC2: ", percentVar[2], "% variance")) +
-  scale_color_manual(values = c("#D55E00", "#56B4E9")) +
-  theme_bw()
-deseq_sample_pca
-ggsave(plot = deseq_sample_pca, filename = paste(results_dir, "Figure_3.5_S3.png", sep = ""), width = 6, height = 6, device = "png", dpi = 700)
-```
 ## Differential TE Volcano plot
 ```{r}
 te_volcano_plot <- res_te %>%
