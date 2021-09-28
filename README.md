@@ -197,8 +197,9 @@ Rscript ./scripts/run_deseq2.R
 # Section 2: Reproduction of Tables and Figures
 
 ## Make alignment tracks
-Here we make alignment tracks from the genome and transcriptome BAMs using individual replicates and the merged data
+Here we make the required alignment tracks for figures from the genome and transcriptome BAMs using individual replicates and the merged data
 ```
+./scripts/make_coverae_tracks.sh
 ```
 
 
