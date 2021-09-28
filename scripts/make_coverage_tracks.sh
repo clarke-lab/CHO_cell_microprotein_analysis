@@ -53,7 +53,7 @@ done
  bigwigCompare \
  --bigwig1 $merged_dir/riboseq_harr.p.site.transcriptome.bigwig \
  --bigwig2 $merged_dir/riboseq_nd.p.site.transcriptome.bigwig \
- --outFileName $merged_dir/merged/harr-nd.bigwig \
+ --outFileName $merged_dir/harr-nd.bigwig \
  --outFileFormat bigwig \
  --numberOfProcessors 70 \
  -bs 1 \
