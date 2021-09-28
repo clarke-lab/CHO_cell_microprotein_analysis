@@ -8,6 +8,7 @@ alignment_tracks
 periodicity_analysis
 script_backup
 results/read_counts
+results/read_length*
 results/sec*
 results/r_scripts/*html
 results/r_scripts/*Rproj
@@ -21,3 +22,4 @@ rpf_psite_analysis
 orf_lists
 proteomics_db
 results/r_scripts/read_length.txt
+results/r_scripts/*_files*
