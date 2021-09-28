@@ -58,7 +58,10 @@ wget "$url"/GCF_003668045.3_CriGri-PICRH-1.0/GCF_003668045.3_CriGri-PICRH-1.0_ge
 -P reference_genome
 
 wget "$url"/GCF_003668045.3_CriGri-PICRH-1.0/GCF_003668045.3_CriGri-PICRH-1.0_feature_table.txt \
--P reference_genome
+-P reference_genome 
+
+wget "$url"/GCF_003668045.3_CriGri-PICRH-1.0/GCF_003668045.3_CriGri-PICRH-1.0_genomic.gff.gz \
+-P reference_genome 
 
 # extract
 gunzip reference_genome/*.gz
