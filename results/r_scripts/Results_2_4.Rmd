@@ -24,12 +24,18 @@ root_dir <- c("/mnt/HDD2/colin/ribosome_footprint_profiling/")
 
 ## Load DESeq2 output
 ```{r}
-load(file="../section2.4/results.2.4.RData")
+load(file = "../section2.4/results.2.4.RData")
 ```
 
-# Differential Expression results
+## QC Heatmap
 ```{r}
-load(file="../section2.4/results.2.4.RData")
+vsd <- vst(dds_te, blind = FALSE)
+sampleDists <- dist(t(assay(vsd)))
+
+sampleDistMatrix <- as.matrix(sampleDists)
+
+deseq_sample_heatmap <- ggheatmap(sampleDistMatrix)
+ggsave(plot = deseq_sample_heatmap, filename = paste(results_dir, "Figure_S7.png", sep = ""), width = 8, height = 8, device = "png", dpi = 700)
 ```
 
 ### Set thresholds 
@@ -40,6 +46,8 @@ pval_threshold <- 0.05
 base_mean_threshold <- 0
 average_counts <- 20
 ```
+
+
 
 ## RNA-seq
 Volcano plot for RNA-seq
@@ -130,19 +138,20 @@ de_comparison <- ggvenn(
   stroke_size = 0.5, set_name_size = 4
 ) +
   scale_fill_viridis(discrete = T)
+```
 
-de_comparison
-
+## Figure S8
+```{r fig.height=8}
 combined_volcano <- rnaseq_volcano_plot + riboseq_volcano_plot + plot_layout(guides = "collect") + guides(color = guide_legend(override.aes = list(size = 3)))
 
-volcano_venn <- combined_volcano / de_comparison + plot_layout(heights=unit(c(5,1), c("cm","null")))
-  
-ggsave(plot = volcano_venn, filename = paste(results_dir, "Figure_3.5_S1.png", sep = ""), width =9, height = 9, device = "png", dpi = 700)
+volcano_venn <- combined_volcano / de_comparison + plot_layout(heights = unit(c(5, 1), c("cm", "null")))
 
-ggsave(  plot=de_comparison, filename = paste(results_dir, "Figure_3.5_A.png", sep = ""),
-  width = 5, height = 5, device = "png", dpi = 700)
+volcano_venn
+ggsave(plot = volcano_venn, filename = paste(results_dir, "Figure_S8.png", sep = ""), width = 9, height = 9, device = "png", dpi = 700)
 ```
-## Volcano plot
+
+
+## Correlated RNA and RPF fold changes
 ```{r}
 # agreement between ribo and rna
 aggreement_changes <- c(intersect(RNASeq_up$Plastid_ID, RiboSeq_up$Plastid_ID), intersect(RNASeq_down$Plastid_ID, RiboSeq_down$Plastid_ID))
@@ -170,22 +179,13 @@ riboseq_cor_rnaseq_volcano_plot <- res_riboseq %>%
   guides(color = guide_legend(override.aes = list(size = 3))) +
   theme(legend.position = "right")
 riboseq_cor_rnaseq_volcano_plot
-  ggsave(plot = riboseq_cor_rnaseq_volcano_plot, filename = paste(results_dir, "Figure_3.5_B.png", sep = ""), width = 3, height = 4, device = "png", dpi = 700)
+ggsave(plot = riboseq_cor_rnaseq_volcano_plot, filename = paste(results_dir, "Figure_5A.png", sep = ""), width = 3, height = 4, device = "png", dpi = 700)
 ```
 
 # Translation Efficency
 Here genes that are altered at the level of translation are identified. Only those genes with 10 counts in both the riboseq and rnaseq are included in the analysis
 
-## QC Heatmap
-```{r}
-vsd <- vst(dds_te, blind = FALSE)
-sampleDists <- dist(t(assay(vsd)))
 
-sampleDistMatrix <- as.matrix(sampleDists)
-
-deseq_sample_heatmap <- ggheatmap(sampleDistMatrix)
-ggsave(plot = deseq_sample_heatmap, filename = paste(results_dir, "Figure_3.5_S2.png", sep = ""), width = 8, height = 8, device = "png", dpi = 700)
-```
 ## QC PCA
 ```{r}
 pcaData <- plotPCA(vsd, intgroup = c("condition", "assay"), returnData = TRUE)
@@ -196,7 +196,7 @@ deseq_sample_pca <- ggplot(pcaData, aes(PC1, PC2, color = condition, shape = ass
   ylab(paste0("PC2: ", percentVar[2], "% variance")) +
   scale_color_manual(values = c("#D55E00", "#56B4E9")) +
   theme_bw()
-deseq_sample_pca 
+deseq_sample_pca
 ggsave(plot = deseq_sample_pca, filename = paste(results_dir, "Figure_3.5_S3.png", sep = ""), width = 6, height = 6, device = "png", dpi = 700)
 ```
 ## Differential TE Volcano plot
@@ -262,7 +262,7 @@ te_scatter_plot <- diff_plot_data %>%
   ggplot(aes(x = log2FoldChange.rnaseq, y = log2FoldChange.riboseq, color = direction_color, alpha = direction_color)) +
   geom_point(size = 0.4) +
   theme_bw() +
-  scale_color_manual(values = c("grey",   "#009E73", "#AA4499",  "#56B4E9", "#D55E00")) +
+  scale_color_manual(values = c("grey", "#009E73", "#AA4499", "#56B4E9", "#D55E00")) +
   scale_alpha_manual(values = c(0.2, 1, 1, 1, 1)) +
   geom_vline(xintercept = log2(fold_change_threshold), linetype = 11, size = 0.2) +
   geom_vline(xintercept = 0, size = 0.3) +
@@ -270,9 +270,10 @@ te_scatter_plot <- diff_plot_data %>%
   geom_hline(yintercept = log2(fold_change_threshold), linetype = 11, size = 0.2) +
   geom_hline(yintercept = 0, size = 0.3) +
   geom_hline(yintercept = -log2(fold_change_threshold), linetype = 11, size = 0.2) +
-  labs(x=expression("Log"[2] ~ "mRNA FC (TS/NTS)"),y=expression("Log"[2] ~ "RPF FC (TS/NTS)"), color="", alpha="" ) +
-  xlim(c(-4.5,4.5)) + ylim(c(-4.5,4.5)) +
-   #theme(legend.position = "top") +
+  labs(x = expression("Log"[2] ~ "mRNA FC (TS/NTS)"), y = expression("Log"[2] ~ "RPF FC (TS/NTS)"), color = "", alpha = "") +
+  xlim(c(-4.5, 4.5)) +
+  ylim(c(-4.5, 4.5)) +
+  # theme(legend.position = "top") +
   guides(color = guide_legend(override.aes = list(size = 3, alpha = 1)))
 
 te_scatter_plot
@@ -280,10 +281,11 @@ ggsave(filename = paste(results_dir, "Figure_3.5_C.png", sep = ""), width = 5.5,
 ```
 ## Combined Volcano and scatter
 ```{r}
-fig_3.5_bc <- ggarrange(riboseq_cor_rnaseq_volcano_plot,ggplot()+theme_void(), te_scatter_plot, ncol=3, widths=c(1,0.05,1))
+fig_3.5_bc <- ggarrange(riboseq_cor_rnaseq_volcano_plot, ggplot() +
+  theme_void(), te_scatter_plot, ncol = 3, widths = c(1, 0.05, 1))
 fig_3.5_bc
 
-ggsave(plot=fig_3.5_bc, filename = paste(results_dir, "Figure_3.5_BaC.png", sep = ""), width = 11, height = 4, device = "png", dpi = 700)
+ggsave(plot = fig_3.5_bc, filename = paste(results_dir, "Figure_3.5_BaC.png", sep = ""), width = 11, height = 4, device = "png", dpi = 700)
 ```
 ## Write DE results to file
 Only protein coding genes are saved here
@@ -333,7 +335,7 @@ if (!dir.exists(enrichdir)) {
 
 gene_symbols_all <- changing_both$symbol # genes that are significantly different and in the same direction from RNA and RPF
 
-gene_symbols_te_only <- sig_res_te$symbol 
+gene_symbols_te_only <- sig_res_te$symbol
 
 write(gene_symbols_te_only, file = paste0(enrichdir, "te_genes.txt"))
 write(gene_symbols_all, file = paste0(enrichdir, "all_genes.txt"))
@@ -408,16 +410,16 @@ enrichment_plot_te <- bind_rows(te_gene_enrichment) %>%
 
 
 enrichment_plot_all <- bind_rows(all_gene_enrichment[1:10, ]) %>%
-  mutate(go_process=paste( description)) %>%
+  mutate(go_process = paste(description)) %>%
   mutate(FDR = case_when(FDR == 0 ~ 2.2e-16, TRUE ~ FDR)) %>%
   mutate(go_process = fct_reorder(geneSet, enrichmentRatio)) %>%
-  ggplot(aes(x = enrichmentRatio, y = go_process, color = -log10(FDR), size = overlap, label=description)) +
+  ggplot(aes(x = enrichmentRatio, y = go_process, color = -log10(FDR), size = overlap, label = description)) +
   geom_point() +
   scale_color_viridis() +
   theme_bw() +
   labs(x = "Enrichment ratio", y = "", size = "Overlap") +
-  theme(axis.text.x = element_text(angle=80, hjust = 1)) +
-  geom_text_repel(size=3, color="black", direction="x")
+  theme(axis.text.x = element_text(angle = 80, hjust = 1)) +
+  geom_text_repel(size = 3, color = "black", direction = "x")
 enrichment_plot_all
 
 
@@ -455,7 +457,7 @@ dna_repair_boxplots <- bind_rows(
   geom_point(size = 0.5) +
   facet_wrap(~name, scales = "free_y") +
   theme_bw() +
-  labs(x = "", y = expression("Log"[2] ~ "TE (TS/NTS)") , fill = "") +
+  labs(x = "", y = expression("Log"[2] ~ "TE (TS/NTS)"), fill = "") +
   scale_fill_manual(values = c("#D55E00", "#56B4E9")) +
   theme(strip.text = element_text(face = "italic"), strip.background = element_blank())
 dna_repair_boxplots
