@@ -1,96 +1,104 @@
 ---
 title: "Section 3.4 Results"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 # Prepare for analysis
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 package_list <- c(
-  "tidyverse", "DESeq2", "writexl", "viridis","ggpp") 
+  "tidyverse", "DESeq2", "writexl", "viridis", "ggpp"
+)
 
 suppressMessages(lapply(package_list, require, character.only = TRUE))
 
 results_dir <- "/mnt/HDD2/colin/ribosome_footprint_profiling/results/section2.5/"
 if (!dir.exists(results_dir)) {
-  dir.create(results_dir,recursive = TRUE)
+  dir.create(results_dir, recursive = TRUE)
 }
 ```
 
 # Import the ORFRATER results
 ```{r}
-load("/mnt/HDD2/colin/ribosome_footprint_profiling/results/section2.2/results_2_2.RData")
+load("../section2.2/results_2_2.RData")
 ```
 
 # Analysis of New ORFs
 ## Transcript types
 ```{r}
-new_orf_classification <- table_s2 %>%
-filter(`ORF type` == "New") %>%
-mutate(rna_type = case_when(
-str_detect(`ORF-RATER name`, "XR|NR") ~"ncRNA",  
-!str_detect(`ORF-RATER name`, "XR|NR") ~"mRNA")) %>% 
-mutate(orf_length = case_when(`Length (AAs)` >= 5 & `Length (AAs)`& 
-                                `Length (AAs)` <= 100 & 
-                                rna_type == "ncRNA" ~ "lncRNA smORF <= 100aa", 
-                              rna_type == "mRNA" ~ "mRNA", 
-                              `Length (AAs)` < 5 | `Length (AAs)`& 
-                                `Length (AAs)` > 100 & 
-                                rna_type == "ncRNA" ~ "lncRNA ORF > 100aa")) %>%
-  mutate(type="New ORFs",
-         orf_length=factor(orf_length, levels=c("mRNA","lncRNA ORF > 100aa","lncRNA smORF <= 100aa"))) 
+new_orf_classification <- table_s3 %>%
+  filter(`ORF type` == "New") %>%
+  mutate(rna_type = case_when(
+    str_detect(`ORF-RATER name`, "XR|NR") ~ "ncRNA",
+    !str_detect(`ORF-RATER name`, "XR|NR") ~ "mRNA"
+  )) %>%
+  mutate(orf_length = case_when(
+    `Length (AAs)` >= 5 & `Length (AAs)` &
+      `Length (AAs)` <= 100 &
+      rna_type == "ncRNA" ~ "lncRNA smORF <= 100aa",
+    rna_type == "mRNA" ~ "mRNA",
+    `Length (AAs)` < 5 | `Length (AAs)` &
+      `Length (AAs)` > 100 &
+      rna_type == "ncRNA" ~ "lncRNA ORF > 100aa"
+  )) %>%
+  mutate(
+    type = "New ORFs",
+    orf_length = factor(orf_length, levels = c("mRNA", "lncRNA ORF > 100aa", "lncRNA smORF <= 100aa"))
+  )
 
-table(new_orf_classification$rna_type,  new_orf_classification$orf_length)
+table(new_orf_classification$rna_type, new_orf_classification$orf_length)
 
-new_orf_classification_plot <- new_orf_classification %>% 
-  ggplot(aes(x=type, fill=orf_length)) + 
-geom_bar(aes(y=(..count..)/sum(..count..)),position="stack", width=1) +
-  theme_minimal()  + 
-  scale_fill_manual(values = c("#999999","#CC79A7","#35968CFF")) +
-  #scale_x_continuous(expand=c(0,0)) +
-    scale_y_continuous(expand=c(0,0)) +
-  labs(fill="", x="", y ="Proportion of ORFs") 
+new_orf_classification_plot <- new_orf_classification %>%
+  ggplot(aes(x = type, fill = orf_length)) +
+  geom_bar(aes(y = (..count..) / sum(..count..)), position = "stack", width = 1) +
+  theme_minimal() +
+  scale_fill_manual(values = c("#999999", "#CC79A7", "#35968CFF")) +
+  # scale_x_continuous(expand=c(0,0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  labs(fill = "", x = "", y = "Proportion of ORFs")
 new_orf_classification_plot
-ggsave(plot=new_orf_classification_plot, filename = paste(results_dir,"Figure_3.4_A.png", sep=""), dpi = 700, device = "png", width=3, height = 3) 
+ggsave(plot = new_orf_classification_plot, filename = paste(results_dir, "Figure_6A.png", sep = ""), dpi = 700, device = "png", width = 3, height = 3)
 ```
 ## Number of small ORFs per non-coding RNA
 ```{r}
-lncRNA_smorfs <- table_s2 %>%
-  filter(`ORF type` == "New" & 
-           str_detect(`ORF-RATER name`, "XR|NR") &
-           `Length (AAs)` >= 5 & `Length (AAs)` <= 100 ) %>%
+lncRNA_smorfs <- table_s3 %>%
+  filter(`ORF type` == "New" &
+    str_detect(`ORF-RATER name`, "XR|NR") &
+    `Length (AAs)` >= 5 & `Length (AAs)` <= 100) %>%
   group_by(`Transcript ID`) %>%
-  mutate(num_ORFs=n()) %>%
+  mutate(num_ORFs = n()) %>%
   ungroup()
 
 # plot the distribution of uORFs per_transcript
 new_ORFs_per_transcript_plot <- lncRNA_smorfs %>%
   dplyr::select(`Transcript ID`, num_ORFs) %>%
-  ggplot(aes(x=num_ORFs)) +
-  geom_bar(stat="count",fill="#35968CFF") +
-  scale_x_discrete(limits=as.character(c(1:max(lncRNA_smorfs$num_ORFs)))) +
+  ggplot(aes(x = num_ORFs)) +
+  geom_bar(stat = "count", fill = "#35968CFF") +
+  scale_x_discrete(limits = as.character(c(1:max(lncRNA_smorfs$num_ORFs)))) +
   theme_bw() +
-  labs(x="ORFs per transcript", y="Number of transcripts") +
-  geom_text(stat="count",aes(label=..count..), vjust=-0.1, color="black", size=3) 
+  labs(x = "ORFs per transcript", y = "Number of transcripts") +
+  geom_text(stat = "count", aes(label = ..count..), vjust = -0.1, color = "black", size = 3)
 new_ORFs_per_transcript_plot
 
-ggsave(plot= new_ORFs_per_transcript_plot,filename = paste(results_dir,"Figure_3.4_B.png", sep=""), dpi = 700, device = "png", width = 3, height = 3) 
+ggsave(plot = new_ORFs_per_transcript_plot, filename = paste(results_dir, "Figure_6B.png", sep = ""), dpi = 700, device = "png", width = 3, height = 3)
 ```
 
 ```{r}
 # 1. length distribution
 lncRNA_smorf_length_plot <- lncRNA_smorfs %>%
-  ggplot(aes(x=sort(`Length (AAs)`))) +
-  geom_histogram(bins=50, fill="#35968CFF") +
-  labs(y="# lncRNA smORFs", x = "ORF Length (aa)") +
-  geom_text_npc(aes(npcx=0.9, npcy=0.9,label=paste0("Mean length:\n",round(mean(lncRNA_smorfs$`Length (AAs)`)), " aa")),size=3) +
-  theme_bw() 
+  ggplot(aes(x = sort(`Length (AAs)`))) +
+  geom_histogram(bins = 50, fill = "#35968CFF") +
+  labs(y = "# lncRNA smORFs", x = "ORF Length (aa)") +
+  geom_text_npc(aes(npcx = 0.9, npcy = 0.9, label = paste0("Mean length:\n", round(mean(lncRNA_smorfs$`Length (AAs)`)), " aa")), size = 3) +
+  theme_bw()
 
 lncRNA_smorf_length_plot
-ggsave(plot = lncRNA_smorf_length_plot, filename = paste(results_dir,"Figure_3.4_C.png", sep=""), dpi = 700, device = "png", width = 3, height = 3) 
+ggsave(plot = lncRNA_smorf_length_plot, filename = paste(results_dir, "Figure_6C.png", sep = ""), dpi = 700, device = "png", width = 3, height = 3)
 ```
 
 # Load the DE results
 ```{r}
-load(file="../section2.4/results.2.4.RData")
+load(file = "../section2.4/results.2.4.RData")
 ```
 
 
@@ -102,29 +110,35 @@ base_mean_threshold <- 0
 average_counts <- 20 # set during Results 3.3
 ```
 
+## New ORFs within AA length range
 ```{r}
-filter(`ORF type` == "New" & 
-           str_detect(`ORF-RATER name`, "XR|NR") &
-           `Length (AAs)` >= 5 & `Length (AAs)` <= 100 )
+smorf_ids<-table_s3 %>% filter(`ORF type` == "New" &
+            str_detect(`ORF-RATER name`, "XR|NR") &
+            `Length (AAs)` >= 5 & `Length (AAs)` <= 100 ) %>%
+  dplyr::select(`ORF-RATER name`)
+```
 
+
+```{r}
 sig_res_rnaseq_smorf <- res_rnaseq %>%
   as_tibble(rownames = "geneid") %>%
   filter(str_detect(geneid, "NR|XR")) %>%
-  dplyr::filter(abs(log2FoldChange) >= log2(fold_change_threshold) & 
-                  padj < pval_threshold & baseMean >=base_mean_threshold)
- 
-paste0(dim(sig_res_rnaseq_smorf)[1], " DE from RNA-seq")
-paste0(sum(sig_res_rnaseq_smorf$log2FoldChange > 0) , " up from RNA-seq")
-paste0(sum(sig_res_rnaseq_smorf$log2FoldChange < 0), " down from RNA-seq")
- 
+  filter(geneid %in% smorf_ids$`ORF-RATER name`) %>%
+  dplyr::filter(abs(log2FoldChange) >= log2(fold_change_threshold) &
+    padj < pval_threshold & baseMean >= base_mean_threshold)
 
-rnaseq_volcano_plot <- res_rnaseq %>% 
+paste0(dim(sig_res_rnaseq_smorf)[1], " DE from RNA-seq")
+paste0(sum(sig_res_rnaseq_smorf$log2FoldChange > 0), " up from RNA-seq")
+paste0(sum(sig_res_rnaseq_smorf$log2FoldChange < 0), " down from RNA-seq")
+
+
+rnaseq_volcano_plot <- res_rnaseq %>%
   as_tibble(rownames = "geneid") %>%
-  drop_na(padj) %>% 
+  drop_na(padj) %>%
   filter(str_detect(geneid, "NR|XR")) %>%
   mutate(diff_rnaseq = case_when(
-    log2FoldChange >= log2(fold_change_threshold) & padj < pval_threshold & baseMean >=base_mean_threshold & str_detect(geneid, "NR|XR") == "TRUE" ~ "Up",
-    log2FoldChange <= -log2(fold_change_threshold) & padj < pval_threshold &  baseMean >=base_mean_threshold & str_detect(geneid, "NR|XR") == "TRUE" ~ "Down",
+    log2FoldChange >= log2(fold_change_threshold) & padj < pval_threshold & baseMean >= base_mean_threshold & str_detect(geneid, "NR|XR") == "TRUE" ~ "Up",
+    log2FoldChange <= -log2(fold_change_threshold) & padj < pval_threshold & baseMean >= base_mean_threshold & str_detect(geneid, "NR|XR") == "TRUE" ~ "Down",
     TRUE ~ "No change"
   )) %>%
   ggplot(aes(x = log2FoldChange, y = -log10(padj), color = diff_rnaseq)) +
@@ -132,32 +146,34 @@ rnaseq_volcano_plot <- res_rnaseq %>%
   labs(x = "Log2 fold change (TS/NTS)", title = "RNA-seq", color = "") +
   theme_bw() +
   xlim(-2.5, 2.5) +
-  geom_vline(xintercept = c(log2(fold_change_threshold), -log2(fold_change_threshold)), 
-             linetype = c(11,11), size =c(0.2,0.2)) +
-  geom_hline(yintercept = -log10(0.05), linetype = 11, size =0.2) +
+  geom_vline(
+    xintercept = c(log2(fold_change_threshold), -log2(fold_change_threshold)),
+    linetype = c(11, 11), size = c(0.2, 0.2)
+  ) +
+  geom_hline(yintercept = -log10(0.05), linetype = 11, size = 0.2) +
   scale_color_manual(values = c("#D55E00", "#999999", "#56B4E9"))
-
-
-ggsave(plot = rnaseq_volcano_plot, filename = paste(results_dir, "Figure_3.5_B.png", sep = ""), width = 3, height = 4, device = "png", dpi = 700)
 ```
+
+## RPF DE smORF
 ```{r}
- sig_res_riboseq_smorf <- res_riboseq %>%
+sig_res_riboseq_smorf <- res_riboseq %>%
   as_tibble(rownames = "geneid") %>%
   filter(str_detect(geneid, "NR|XR")) %>%
-  dplyr::filter(abs(log2FoldChange) >= log2(fold_change_threshold) & 
-                  padj < pval_threshold & baseMean >= base_mean_threshold)
+  filter(geneid %in% smorf_ids$`ORF-RATER name`) %>%
+  dplyr::filter(abs(log2FoldChange) >= log2(fold_change_threshold) &
+    padj < pval_threshold & baseMean >= base_mean_threshold)
 
 paste0(dim(sig_res_riboseq_smorf)[1], " DE from Ribo-seq")
-paste0(sum(sig_res_riboseq_smorf$log2FoldChange > 0) , " up from Ribo-seq")
+paste0(sum(sig_res_riboseq_smorf$log2FoldChange > 0), " up from Ribo-seq")
 paste0(sum(sig_res_riboseq_smorf$log2FoldChange < 0), " down from Ribo-seq")
 
- riboseq_volcano_plot <- res_riboseq %>% 
+riboseq_volcano_plot <- res_riboseq %>%
   as_tibble(rownames = "geneid") %>%
-  drop_na(padj) %>% 
+  drop_na(padj) %>%
   filter(str_detect(geneid, "NR|XR")) %>%
-    mutate(diff_riboseq = case_when(
+  mutate(diff_riboseq = case_when(
     log2FoldChange >= log2(fold_change_threshold) & padj < pval_threshold & baseMean >= base_mean_threshold & str_detect(geneid, "NR|XR") == "TRUE" ~ "Up",
-    log2FoldChange <= -log2(fold_change_threshold) & padj < pval_threshold &  baseMean >= base_mean_threshold & str_detect(geneid, "NR|XR") == "TRUE" ~ "Down",
+    log2FoldChange <= -log2(fold_change_threshold) & padj < pval_threshold & baseMean >= base_mean_threshold & str_detect(geneid, "NR|XR") == "TRUE" ~ "Down",
     TRUE ~ "No change"
   )) %>%
   ggplot(aes(x = log2FoldChange, y = -log10(padj), color = diff_riboseq)) +
@@ -165,18 +181,15 @@ paste0(sum(sig_res_riboseq_smorf$log2FoldChange < 0), " down from Ribo-seq")
   labs(x = "Log2 fold change (TS/NTS)", title = "Ribo-seq", color = "") +
   theme_bw() +
   xlim(-2.5, 2.5) +
-  geom_vline(xintercept = c(log2(fold_change_threshold), -log2(fold_change_threshold)), 
-             linetype = c(11,11), size =c(0.2,0.2)) +
-  geom_hline(yintercept = -log10(0.05), linetype = 11, size =0.2) +
+  geom_vline(
+    xintercept = c(log2(fold_change_threshold), -log2(fold_change_threshold)),
+    linetype = c(11, 11), size = c(0.2, 0.2)
+  ) +
+  geom_hline(yintercept = -log10(0.05), linetype = 11, size = 0.2) +
   scale_color_manual(values = c("#D55E00", "#999999", "#56B4E9"))
-
-combined_volcano <- (rnaseq_volcano_plot + guides(color = guide_legend(override.aes = list(size = 3))) + riboseq_volcano_plot + guides(color = guide_legend(override.aes = list(size = 3)))) + plot_layout(guides = "collect") 
-combined_volcano
-ggsave(plot = combined_volcano, filename = paste(results_dir, "Figure_3.6_S1.png", sep = ""), width = 6, height = 4, device = "png", dpi = 700)
 ```
 
 # Comparison of RNA and RPF changes
-
 ```{r}
 # agreement between ribo and rna
 RNASeq_up <- sig_res_rnaseq_smorf %>%
@@ -215,21 +228,24 @@ de_comparison <- ggvenn(
   scale_fill_viridis(discrete = T)
 
 de_comparison
-
-ggsave(  plot=de_comparison, filename = paste(results_dir, "Figure_3.6_A.png", sep = ""),
-  width = 5, height = 5, device = "png", dpi = 700)
-
-volcano_venn <- combined_volcano / de_comparison + plot_layout(heights=unit(c(5,1), c("cm","null")))
-  
-ggsave(plot = volcano_venn, filename = paste(results_dir, "Figure_3.5_S6.png", sep = ""), width =9, height = 9, device = "png", dpi = 700)
-
-ggsave(  plot=de_comparison, filename = paste(results_dir, "Figure_3.5_A.png", sep = ""),
-  width = 5, height = 5, device = "png", dpi = 700)
 ```
+
+## Figure S9
+```{r}
+
+combined_volcano <- (rnaseq_volcano_plot + guides(color = guide_legend(override.aes = list(size = 3))) + riboseq_volcano_plot + guides(color = guide_legend(override.aes = list(size = 3)))) + plot_layout(guides = "collect") 
+
+volcano_venn <- combined_volcano / de_comparison + plot_layout(heights = unit(c(5, 1), c("cm", "null")))
+volcano_venn 
+ggsave(plot = volcano_venn, filename = paste(results_dir, "Figure_S9.png", sep = ""), width = 9, height = 9, device = "png", dpi = 700)
+```
+
 ## Volcano plot
 ```{r}
-aggreement_changes_smorf <- c(intersect(RNASeq_up$geneid, RiboSeq_up$geneid), 
-                              intersect(RNASeq_down$geneid, RiboSeq_down$geneid))
+aggreement_changes_smorf <- c(
+  intersect(RNASeq_up$geneid, RiboSeq_up$geneid),
+  intersect(RNASeq_down$geneid, RiboSeq_down$geneid)
+)
 
 changing_both_smorf <- sig_res_riboseq_smorf %>%
   filter(geneid %in% aggreement_changes_smorf)
@@ -250,49 +266,52 @@ riboseq_cor_smorf_rnaseq_volcano_plot <- res_riboseq %>%
   geom_vline(xintercept = c(log2(fold_change_threshold), -log2(fold_change_threshold)), linetype = 11, size = 0.2) +
   geom_hline(yintercept = -log10(pval_threshold), linetype = 11, size = 0.2) +
   xlim(-6.5, 6.5) +
-  scale_color_manual(values = c("#D55E00", "#999999", "#56B4E9")) +
+  scale_color_manual(values = c("#999999", "#56B4E9")) +
   guides(color = guide_legend(override.aes = list(size = 2))) +
   theme(legend.position = "bottom")
 riboseq_cor_smorf_rnaseq_volcano_plot
-  ggsave(plot = riboseq_cor_smorf_rnaseq_volcano_plot, filename = paste(results_dir, "Figure_3.6_B.png", sep = ""), width = 3, height = 4, device = "png", dpi = 700)
+ggsave(plot = riboseq_cor_smorf_rnaseq_volcano_plot, filename = paste(results_dir, "Figure_6D.png", sep = ""), width = 3, height = 4, device = "png", dpi = 700)
 ```
+## Boxplots of correlated genes
 ```{r}
 sig_res_riboseq_smorf %>%
   filter(geneid %in% aggreement_changes_smorf) %>%
   arrange(-log2FoldChange)
 
 tcounts <- t(log2((counts(dds_te[aggreement_changes_smorf, ], normalized = TRUE, replaced = FALSE) + .5))) %>%
-base::merge(colData(dds_te), ., by = "row.names")
+  base::merge(colData(dds_te), ., by = "row.names")
 
 boxplot_smorf <- bind_rows(
   tcounts[tcounts$condition == "nts" & tcounts$assay == "riboseq", aggreement_changes_smorf],
   tcounts[tcounts$condition == "ts" & tcounts$assay == "riboseq", aggreement_changes_smorf],
   tcounts[tcounts$condition == "nts" & tcounts$assay == "rnaseq", aggreement_changes_smorf],
   tcounts[tcounts$condition == "ts" & tcounts$assay == "rnaseq", aggreement_changes_smorf]
-  
 ) %>%
-  mutate(condition = toupper(tcounts$condition),
-         seqtype=tcounts$assay) %>%
-  pivot_longer(cols = c(-condition,-seqtype)) %>%
-  #mutate(name = str_remove(name, "_1")) %>%
+  mutate(
+    condition = toupper(tcounts$condition),
+    seqtype = tcounts$assay
+  ) %>%
+  pivot_longer(cols = c(-condition, -seqtype)) %>%
+  # mutate(name = str_remove(name, "_1")) %>%
   ggplot(aes(x = seqtype, y = value, fill = condition)) +
   geom_boxplot(position = position_dodge2(0.75, preserve = "single")) +
-  geom_point(size = 0.5,position = position_dodge(0.75, preserve = "total") ) +
+  geom_point(size = 0.5, position = position_dodge(0.75, preserve = "total")) +
   facet_wrap(~name, scales = "free_y", ncol = 4) +
   theme_bw() +
-  labs(x = "", y = expression("Log"[2] ~ "TE (TS/NTS)") , fill = "") +
+  labs(x = "", y = expression("Log"[2] ~ "TE (TS/NTS)"), fill = "") +
   scale_fill_manual(values = c("#D55E00", "#56B4E9")) +
-  theme(strip.text = element_text(face = "italic",size=7), strip.background = element_blank())
+  theme(strip.text = element_text(face = "italic", size = 7), strip.background = element_blank())
 
-boxplot_smorf 
-  ggsave(plot =boxplot_smorf , filename = paste(results_dir, "Figure_3.6_S2.png", sep = ""), width =10, height = 10, device = "png", dpi = 700)
+boxplot_smorf
+ggsave(plot = boxplot_smorf, filename = paste(results_dir, "Figure_S10.png", sep = ""), width = 10, height = 10, device = "png", dpi = 700)
 ```
-## DTE
+# Differential smORF translation
 ```{r}
 sig_res_te_smorf <- res_te %>%
-  as_tibble(rownames = "geneid") %>% 
+  as_tibble(rownames = "geneid") %>%
   filter(str_detect(geneid, "NR|XR")) %>%
-  dplyr::filter(abs(log2FoldChange) > log2(fold_change_threshold) & padj < pval_threshold & baseMean >=base_mean_threshold) %>%
+  filter(geneid %in% smorf_ids$`ORF-RATER name`) %>%
+  dplyr::filter(abs(log2FoldChange) > log2(fold_change_threshold) & padj < pval_threshold & baseMean >= base_mean_threshold) %>%
   arrange(-log2FoldChange)
 sig_res_te_smorf
 ```
@@ -315,17 +334,17 @@ smorf_te_boxplots <- bind_rows(
   ggplot(aes(x = condition, y = value, fill = condition)) +
   geom_boxplot() +
   geom_point(size = 0.5) +
-  facet_wrap(~name, scales = "free_y",ncol = 3) +
+  facet_wrap(~name, scales = "free_y", ncol = 3) +
   theme_bw() +
-  labs(x = "", y = expression("Log"[2] ~ "TE (TS/NTS)") , fill = "") +
+  labs(x = "", y = expression("Log"[2] ~ "TE (TS/NTS)"), fill = "") +
   scale_fill_manual(values = c("#D55E00", "#56B4E9")) +
-  theme(strip.text = element_text(face = "italic",size=8), strip.background = element_blank(), axis.title = element_text(size=6),legend.position = c(0.8,0.15), axis.title.y = element_text(size=12))
+  theme(strip.text = element_text(face = "italic", size = 8), strip.background = element_blank(), axis.title = element_text(size = 6), legend.position = "bottom", axis.title.y = element_text(size = 12))
 smorf_te_boxplots
-ggsave(smorf_te_boxplots, filename = paste(results_dir, "Figure_3.5_F.png", sep = ""), width = 7, height = 5, device = "png", dpi = 700)
+ggsave(smorf_te_boxplots, filename = paste(results_dir, "Figure_6E.png", sep = ""), width = 7, height = 5, device = "png", dpi = 700)
 ```
 ## Write gene lists to file
 ```{r}
-fn <- paste(results_dir, "Table S5.xlsx",
+fn <- paste(results_dir, "Table S6.xlsx",
   sep = ""
 )
 

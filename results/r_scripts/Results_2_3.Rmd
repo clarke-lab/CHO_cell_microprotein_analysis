@@ -27,7 +27,7 @@ load("/mnt/HDD2/colin/ribosome_footprint_profiling/results/section2.2/results_2_
 ## uORFs per transcript
 ```{r}
 # separate uORFs and determine the number per transcript
-uorfs <- table_s2 %>%
+uorfs <- table_s3 %>%
   filter(`ORF type` == "Upstream") %>%
   group_by(`Transcript ID`) %>%
   mutate(num_uORFs=n()) %>%
@@ -44,29 +44,13 @@ uorf_per_transcript_plot <- uorfs %>%
   geom_text(stat="count",aes(label=..count..), vjust=-0.1, color="black", size=3) 
 uorf_per_transcript_plot
 
-ggsave(plot=uorf_per_transcript_plot, filename= paste(results_dir,"Figure_4A.png", sep=""), width = 3, height = 3, device='png', dpi=700)
-```
-
-## uORFs length distribution
-```{r}
-uorf_length_plot <- uorfs %>%
-  ggplot(aes(x=sort(`Length (AAs)`))) +
-  geom_histogram(bins=50, fill="#999933") +
-  labs(y="# uORFs", x = "uORF Length (aa)") +
-  #annotate("text", x = 230, y=620, size=1.5, label=paste0("Mean length:\n",round(mean(uorfs$`Length (AAs)`)), " aa")) +
-  #geom_vline(xintercept = median(uorfs$`Length (AAs)`), color="red", linetype = 11, size = 0.2) +
-  
-geom_text_npc(aes(npcx=0.9, npcy=0.9,label=paste0("Mean length:\n",round(mean(uorfs$`Length (AAs)`)), " aa")),size=3)+
-theme_bw() 
-uorf_length_plot
-
-#ggsave(plot=uorf_length_plot, filename= paste(results_dir,"Figure_3.3_B.png", sep=""), width = 3, height = 3, device='png', dpi=700)
+#ggsave(plot=uorf_per_transcript_plot, filename= paste(results_dir,"Figure_4A.png", sep=""), width = 3, height = 3, device='png', dpi=700)
 ```
 
 ## ouORFs per transcript
 ```{r}
 # separate overlapping uORFs and determine the number per transcript
-  ouorfs <- table_s2 %>%
+  ouorfs <- table_s3 %>%
     filter(`ORF type` == "Start overlap") %>%
     group_by(`Transcript ID`) %>%
     mutate(num_ouORFs=n()) %>%
@@ -85,23 +69,8 @@ uorf_length_plot
     
   ouorf_per_transcript_plot
   
-  ggsave(plot = ouorf_per_transcript_plot, filename= paste(results_dir,"Figure_4D.png", sep=""), width = 3, height = 3, device='png', dpi=700)
+  #ggsave(plot = ouorf_per_transcript_plot, filename= paste(results_dir,"Figure_4D.png", sep=""), width = 3, height = 3, device='png', dpi=700)
 ```
-
-## ouORFs length distribution
-```{r}
-ouorf_length_plot <- ouorfs %>%
-  ggplot(aes(x=sort(`Length (AAs)`))) +
-  geom_histogram(bins=50, fill="#332288") +
-  labs(y="# ouORFs", x = "uORF Length (aa)") +
- # annotate("text", x = 320, y=140, size=1.5, label=paste0("Mean length:\n",round(mean(ouorfs$`Length (AAs)`)), " aa")) +
-  #geom_vline(xintercept = median(ouorfs$`Length (AAs)`), color="red", linetype = 11, size = 0.2) +
-  theme_bw() + 
-geom_text_npc(aes(npcx=0.9, npcy=0.9,label=paste0("Mean length:\n",round(mean(ouorfs$`Length (AAs)`)), " aa")),size=3)
-ouorf_length_plot 
-#ggsave(plot= ouorf_length_plot, filename= paste(results_dir,"Figure_3.3_D.png", sep=""), width = 3, height =3, device='png', dpi=700)
-```
-
 # Correlation uORF and ouORFs with TE
 ## Import the RPKM values
 The counts are transcipt level we used the cds_rpkm value
@@ -134,7 +103,7 @@ riboseq_rpkm <- rpkm_data %>%
          )
 ```
 
-## Calculate translation efficency
+### Calculate translation efficency
 Only for coding trancripts
 ```{r}
 te_data <- left_join(riboseq_rpkm, rnaseq_rpkm,by="region") %>%
@@ -175,10 +144,10 @@ rna_data <- rnaseq_rpkm %>%
             av_all=mean(av_all))
 ```
 
-## Define the control transcripts
+### Define the control transcripts
 Select the protein coding transcripts identified by ORFRATER that have neither a uORF or ouORF and are expressed (RPKM > 0.5)
 ```{r}
-annotated <- table_s2 %>%
+annotated <- table_s3 %>%
   filter(`ORF type` == "Annotated")
 
 uorfs_tid <- uorfs %>% mutate("tid"=`Transcript ID`)
@@ -198,7 +167,7 @@ no_ouorf_transcripts <- ouORF_te_data %>%
 # intersect
 control_transcripts <-intersect(no_uorf_transcripts$tid,no_ouorf_transcripts$tid)
 ```
-## Merge the TE data 
+### Merge the TE data 
 ```{r}
 # first join the uORFs
 all_te_data <- left_join(uORF_te_data,ouorfs_tid, by="tid", suffix=c(".uORF", ".ouORF"))
@@ -207,7 +176,8 @@ all_rna_data <- left_join(uORF_rna_data,ouorfs_tid, by="tid", suffix=c(".uORF", 
 ```
 
 
-## Num uorfs 
+## Impact of number of Upstream ORFs 
+## uORFs
 ### TE
 ```{r}
 # classify each transcript by the number of uORFs
@@ -286,7 +256,7 @@ uORF_te_density_plot <- uORF_te_data_plot  %>%
   theme(legend.position = "none" ) + 
   annotation_custom(orf_stat_table, xmin = 1.08, xmax = 1, ymin = 0.89, ymax = 0.95)
 uORF_te_density_plot
-ggsave(plot= uORF_te_density_plot, filename= paste(results_dir,"Figure_4B.png", sep=""), width = 3, height = 3, device='png', dpi=700)
+#ggsave(plot= uORF_te_density_plot, filename= paste(results_dir,"Figure_4B.png", sep=""), width = 3, height = 3, device='png', dpi=700)
 ```
 
 ### RNA
@@ -360,12 +330,10 @@ uORF_rna_density_plot <- uORF_rna_data_plot  %>%
   annotation_custom(orf_stat_table, xmin = 0.53, xmax = 0.53, ymin = 0.93, ymax = 0.93)
 uORF_rna_density_plot 
 
-ggsave(plot= uORF_rna_density_plot, filename= paste(results_dir,"Figure_3.3_S3A.png", sep=""), width = 3, height = 3, device='png', dpi=700)
+#ggsave(plot= uORF_rna_density_plot, filename= paste(results_dir,"Figure_3.3_S3A.png", sep=""), width = 3, height = 3, device='png', dpi=700)
 ```
 
 
-```{r}
-```
 ## ouORFs
 ### TE
 ```{r}
@@ -373,7 +341,6 @@ ouORF_te_data_plot <- all_te_data  %>%
    mutate(class = case_when( tid %in% control_transcripts  ~ "0",
                            num_ouORFs > 0 & !tid %in% control_transcripts & is.na(num_uORFs) ~ "1+"))
 
-table(ouORF_te_data_plot$class)
 
 wilcox_test_subset_1 <- ouORF_te_data_plot %>%
   filter(class == "0" | class == "1+") 
@@ -414,13 +381,10 @@ ouORF_te_density_plot <- ouORF_te_data_plot  %>%
   scale_color_manual(values=c("#DCE319FF","#73D055FF")) +
   labs(color="", y="Cumlative proportion", x=expression("Main ORF CDS TE (Log"[2]  * ")")) + 
   theme(legend.position = "none" ) +
-  annotation_custom(orf_stat_table, xmin = 0.55, xmax = 1, ymin = 0.96, ymax =1)
+  annotation_custom(orf_stat_table, xmin = 0.75, xmax = 1.07, ymin = 0.96, ymax =1)
 ouORF_te_density_plot  
 
-ggsave(plot= ouORF_te_density_plot, filename= paste(results_dir,"Figure_4E.png", sep=""), width = 3, height = 3, device='png', dpi=700)
-
-# RNA levels
-# repeat for RNA
+#ggsave(plot= ouORF_te_density_plot, filename= paste(results_dir,"Figure_4E.png", sep=""), width = 3, height = 3, device='png', dpi=700)
 ```
 
 ### RNA 
@@ -428,8 +392,6 @@ ggsave(plot= ouORF_te_density_plot, filename= paste(results_dir,"Figure_4E.png",
 ouORF_rna_data_plot <- all_rna_data  %>%
    mutate(class = case_when( tid %in% control_transcripts  ~ "0",
                            num_ouORFs > 0 & !tid %in% control_transcripts & is.na(num_uORFs) ~ "1+"))
-
-table(ouORF_rna_data_plot$class)
 
 wilcox_test_subset_1 <- ouORF_rna_data_plot %>%
   filter(class == "0" | class == "1+") 
@@ -522,11 +484,11 @@ single_atg_uorf_plot_te <- single_atg_uorf_data %>%
   xlim(0,4) +
   theme(legend.position = c(0.7,0.15), legend.text = element_text(size=5), legend.spacing = unit(0.1,"cm")) +
   scale_color_manual(values=c("#DCE319FF","#73D055FF","#238A8DFF")) +
-  labs(color="", y="Cumlative proportion", x="RNA abundance (Log2 RPKM)") + 
+  labs(color="", y="Cumlative proportion", x=expression("Main ORF CDS TE (Log"[2]  * ")")) + 
   theme(legend.position = "none" ) + 
   annotation_custom(orf_stat_table, xmin = 1.2, xmax = 1.2, ymin = 0.97, ymax = 0.95)
-
-ggsave(plot= single_atg_uorf_plot_te, filename= paste(results_dir,"Figure_3.3_S4.png", sep=""), width = 3, height = 3, device='png', dpi=700)
+single_atg_uorf_plot_te
+#ggsave(plot= single_atg_uorf_plot_te, filename= paste(results_dir,"Figure_3.3_S4.png", sep=""), width = 3, height = 3, device='png', dpi=700)
 ```
 
 ### RNA
@@ -578,12 +540,9 @@ single_atg_uorf_plot_rna <- single_atg_uorf_data %>%
   theme(legend.position = "none" ) + 
   annotation_custom(orf_stat_table, xmin = 1.35, xmax = 1.35, ymin = 0.97, ymax = 0.95)
 
-joined_plot_S3 <- ggarrange(single_atg_uorf_plot_te,
-                         ggplot()+theme_void(),
-                         single_atg_uorf_plot_rna,
-                         ncol=3,  widths = c(1,0.05,1))
 
-ggsave(plot= joined_plot_S3, filename= paste(results_dir,"Figure_3.3_S3.png", sep=""), width = 6, height = 3, device='png', dpi=700)
+
+#ggsave(plot= joined_plot_S3, filename= paste(results_dir,"Figure_3.3_S3.png", sep=""), width = 6, height = 3, device='png', dpi=700)
 
 ```
 
@@ -667,7 +626,9 @@ single_uORF_codon_te_ecdf <- single_uORF_codon_te %>%
   labs(color="", y="Cumlative proportion", x=expression("Main ORF CDS TE (Log"[2]  * ")")) + 
   theme(legend.position = "none" ) + 
   annotation_custom(orf_stat_table, xmin = 0.98, xmax = 1, ymin = 0.87, ymax = 0.95)
-ggsave(plot= single_uORF_codon_te_ecdf, filename= paste(results_dir,"Figure_3.3_H.png", sep=""), width = 3, height = 3, device='png', dpi=700)
+
+single_uORF_codon_te_ecdf
+#ggsave(plot= single_uORF_codon_te_ecdf, filename= paste(results_dir,"Figure_3.3_H.png", sep=""), width = 3, height = 3, device='png', dpi=700)
 ```
 
 ### RNA
@@ -749,6 +710,7 @@ single_uORF_codon_rna_ecdf <- single_uORF_codon_rna %>%
   theme(legend.position = "none" ) + 
   annotation_custom(orf_stat_table, xmin = 0.55, xmax = 0.55, ymin = 0.87, ymax = 0.95)
 
+single_uORF_codon_rna_ecdf
 #ggsave(plot= single_uORF_codon_rna_ecdf, filename= paste(results_dir,"Figure_3.3_H.png", sep=""), width = 3, height = 3, device='png', dpi=700)
 ```
 ## ouORF
@@ -830,7 +792,9 @@ single_ouORF_codon_te_ecdf <- single_ouORF_codon_te %>%
   labs(color="", y="Cumlative proportion", x=expression("Main ORF CDS TE (Log"[2]  * ")")) + 
   theme(legend.position = "none" ) + 
   annotation_custom(orf_stat_table, xmin = 0.98, xmax = 1, ymin = 0.87, ymax = 0.95)
-ggsave(plot= single_ouORF_codon_te_ecdf, filename= paste(results_dir,"Figure_3.3_G.png", sep=""), width = 3, height = 3, device='png', dpi=700)
+
+single_ouORF_codon_te_ecdf
+#ggsave(plot= single_ouORF_codon_te_ecdf, filename= paste(results_dir,"Figure_3.3_G.png", sep=""), width = 3, height = 3, device='png', dpi=700)
 ```
 
 ### RNA
@@ -911,13 +875,14 @@ single_ouORF_codon_rna_ecdf <- single_ouORF_codon_rna %>%
   labs(color="", y="Cumlative proportion", x=expression("RNA abundance RPKM (Log"[2]  * ")")) + 
   theme(legend.position = "none" ) + 
   annotation_custom(orf_stat_table, xmin = 0.53, xmax = 0.53, ymin = 0.87, ymax = 0.95)
-ggsave(plot= single_ouORF_codon_rna_ecdf, filename= paste(results_dir,"Figure_3.3_G.png", sep=""), width = 3, height = 3, device='png', dpi=700)
+single_ouORF_codon_rna_ecdf
+#ggsave(plot= single_ouORF_codon_rna_ecdf, filename= paste(results_dir,"Figure_3.3_G.png", sep=""), width = 3, height = 3, device='png', dpi=700)
 ```
 
-
-# main figure
+# Make manuscript figures
+## Figure 4
 ```{r}
-joined_plot <- ggarrange(uorf_per_transcript_plot,
+figure4 <- ggarrange(uorf_per_transcript_plot,
                          ggplot()+theme_void(),
                          uORF_te_density_plot, 
                          ggplot()+theme_void(),
@@ -928,19 +893,18 @@ joined_plot <- ggarrange(uorf_per_transcript_plot,
                          ggplot()+theme_void(),
                           ggplot()+theme_void(),
                          ouorf_per_transcript_plot,
-                          
                          ggplot()+theme_void(),
                          ouORF_te_density_plot, 
                          ggplot()+theme_void(),
                          single_ouORF_codon_te_ecdf,
                          ncol=5, nrow = 3, widths = c(1,0.05,1,0.05,1), heights = c(1,0.05,1))
-
-ggsave(plot= joined_plot, filename= paste(results_dir,"Figure_3.3_G.png", sep=""), width = 9, height = 6, device='png', dpi=700)
+figure4
+ggsave(plot=figure4, filename= paste(results_dir,"Figure 4.png", sep=""), width = 9, height = 6, device='png', dpi=700)
 ```
-### Supplementary Figure 3
+## Figure S5
 
 ```{r}
-joined_plot <- ggarrange(uORF_rna_density_plot, 
+figure_s5 <- ggarrange(uORF_rna_density_plot, 
                          ggplot()+theme_void(),
                          single_uORF_codon_rna_ecdf,
                          ggplot()+theme_void(),
@@ -950,135 +914,19 @@ joined_plot <- ggarrange(uORF_rna_density_plot,
                          ggplot()+theme_void(),
                          single_ouORF_codon_rna_ecdf,
                          ncol=3, nrow = 3, widths = c(1,0.05,1), heights = c(1,0.05,1))
-
-ggsave(plot= joined_plot, filename= paste(results_dir,"Figure_3.3_S3.png", sep=""), width = 9, height = 6, device='png', dpi=700)
+figure_s5
+ggsave(plot= figure_s5, filename= paste(results_dir,"Figure_S5.png", sep=""), width = 9, height = 6, device='png', dpi=700)
 ```
 
-### Supplementary Figure 4
+## Figure S6
 
 ```{r}
+figure_s6 <- ggarrange(single_atg_uorf_plot_te,
+                         ggplot()+theme_void(),
+                         single_atg_uorf_plot_rna,
+                         ncol=3,  widths = c(1,0.05,1))
+
+figure_s6
+ggsave(plot= figure_s6, filename= paste(results_dir,"Figure_S6.png", sep=""), width = 6, height = 3, device='png', dpi=700)
 ```
 
-
-# Coverage track plots
-## Load bedgraph data
-```{r include=FALSE}
-chx_bedgraph <- read_tsv("/mnt/HDD2/colin/ribosome_footprint_profiling/alignment_tracks/merged/riboseq_chx.p.site.transcriptome.bedgraph",
-  col_names = F
-) %>% mutate(ribotype = "chx")
-
-
-harr_min_nd <- read_tsv("/mnt/HDD2/colin/ribosome_footprint_profiling/alignment_tracks/merged/harr-nd.bedgraph",
-  col_names = F
-) %>% mutate(ribotype = "harr-nd")
-
-chx_full_bedgraph <- read_tsv("/mnt/HDD2/colin/ribosome_footprint_profiling/alignment_tracks/merged/chx.fullcov.site.transcriptome_bs0.bedgraph",
-  col_names = F
-) %>% mutate(ribotype = "chx_full")
-
-bedgraph_data <- bind_rows(harr_min_nd, chx_bedgraph,chx_full_bedgraph)
-
-# scaling function
-range01 <- function(x) {
-  (x - min(x)) / (max(x) - min(x))
-}
-```
-
-## DDIT3 uORF
-```{r}
-selected_transcript <- "XM_027392226.1"
-
-  current_orf <-table_s2 %>%
-    filter(`Transcript ID` == selected_transcript) 
-  current_orf
-  
-  
-chx_p_scaled <- bedgraph_data %>%
-  filter(X1 == selected_transcript) %>%
-  filter(ribotype == "chx" ) %>%
-  #filter(X2 <= max(current_orf$`Transcript stop position`) & X2 >= 0) %>%
-  mutate(scale_bpm = range01(X4)) 
-
-chx_full_scaled <- bedgraph_data %>%
-  filter(X1 == selected_transcript) %>%
-  filter(ribotype == "chx_full") %>%
-  #filter(X2 <= 1056 & X2 >= 0) %>%
-  mutate(scale_bpm = range01(X4)) 
-
-track_data <- bind_rows(chx_p_scaled, chx_full_scaled)
-
-track_data <- track_data %>%
-  mutate(frame=ifelse(X2 >= current_orf$`Transcript start position` & X2 <= current_orf$`Transcript stop position` & ribotype == "chx", (X2 - current_orf$`Transcript start position`) %% 3, 
-                      ifelse(X2 >= 167 & X2 <= 617 & ribotype == "chx" , (X2 - 167) %% 3, NA))) 
-
-
-chx_plot <- track_data %>%
-    filter(ribotype == "chx" | ribotype == "chx_full") %>%
-   ggplot(aes(x = X2, y = scale_bpm, fill=frame, alpha=ribotype)) +
-  annotate("rect", xmin = c(current_orf$`Transcript start position`,167), xmax = c(current_orf$`Transcript stop position`,617), ymin = 0, ymax = 1,
-        alpha = .1, fill=c("#999933", "#CC6677")) +
-   geom_bar(stat = "identity", position = "identity") + 
-  scale_fill_viridis() +
-  # geom_vline(xintercept =c(36,141,168,617),  size=0.2, linetype=11) +
-  scale_alpha_discrete(range=c(1,0.3)) +
-  scale_x_continuous(expand = c(0,0)) +
-  scale_y_continuous(expand = c(0,0)) +
-  theme_bw() +
-  geom_text_npc(aes(npcx=0.95, npcy=0.95),label="CHX",size=6)+
-  labs(
-    x = "Transcript coordinates (nts)",
-    y = "Ribo-seq (Scaled BPM)"
-  ) 
-chx_plot$layers <-c(geom_bar(stat = "identity", position = "identity"),chx_plot$layers) 
-chx_plot + theme(legend.position = "none")
-
-ggsave(filename = paste(results_dir,"Figure_3.3_I.png", sep=""), width = 6, height =3, device = "png", dpi = 700)
-```
-## Rad51d ouORF
-```{r}
-selected_transcript <- "XM_027426482.2"
-  current_orf <-table_s2 %>%
-    filter(`Transcript ID` == selected_transcript) 
-current_orf
-
-chx_p_scaled <- bedgraph_data %>%
-  filter(X1 == selected_transcript) %>%
-  filter(ribotype == "chx" ) %>%
-  #filter(X2 <= max(current_orf$`Transcript stop position`) & X2 >= 0) %>%
-  mutate(scale_bpm = range01(X4)) 
-
-chx_full_scaled <- bedgraph_data %>%
-  filter(X1 == selected_transcript) %>%
-  filter(ribotype == "chx_full") %>%
-  #filter(X2 <= 1056 & X2 >= 0) %>%
-  mutate(scale_bpm = range01(X4)) 
-
-track_data <- bind_rows(chx_p_scaled, chx_full_scaled)
-
-track_data <- track_data %>%
-  mutate(frame=ifelse(X2 >= current_orf$`Transcript start position` & X2 <= current_orf$`Transcript stop position` & ribotype == "chx", (X2 - current_orf$`Transcript start position`) %% 3, 
-                      ifelse(X2 >= 191 & X2 <= 1180 & ribotype == "chx" , (X2 - 191) %% 3, NA))) 
-
-
-chx_plot <- track_data %>%
-    filter(ribotype == "chx" | ribotype == "chx_full") %>%
-   ggplot(aes(x = X2, y = scale_bpm, fill=frame, alpha=ribotype)) +
-  annotate("rect", xmin = c(current_orf$`Transcript start position`,191), xmax = c(current_orf$`Transcript stop position`,1180), ymin = 0, ymax = 1,
-        alpha = .1, fill=c("#332288", "#CC6677")) +
-   geom_bar(stat = "identity", position = "identity") + 
-  scale_fill_viridis() +
-  # geom_vline(xintercept =c(36,141,168,617),  size=0.2, linetype=11) +
-  scale_alpha_discrete(range=c(1,0.3)) +
-  scale_x_continuous(expand = c(0,0)) +
-  scale_y_continuous(expand = c(0,0)) +
-  theme_bw() +
-  geom_text_npc(aes(npcx=0.95, npcy=0.95),label="CHX",size=6)+
-  labs(
-    x = "Transcript coordinates (nts)",
-    y = "Ribo-seq (Scaled BPM)"
-  ) 
-chx_plot$layers <-c(geom_bar(stat = "identity", position = "identity"),chx_plot$layers) 
-chx_plot + theme(legend.position = "none")
-
-ggsave(filename = paste(results_dir,"Figure_3.3_J.png", sep=""), width = 6, height = 3, device = "png", dpi = 700)
-```

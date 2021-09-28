@@ -179,35 +179,11 @@ riboseq_cor_rnaseq_volcano_plot <- res_riboseq %>%
   guides(color = guide_legend(override.aes = list(size = 3))) +
   theme(legend.position = "right")
 riboseq_cor_rnaseq_volcano_plot
-ggsave(plot = riboseq_cor_rnaseq_volcano_plot, filename = paste(results_dir, "Figure_5A.png", sep = ""), width = 3, height = 4, device = "png", dpi = 700)
 ```
 
 # Translation Efficency
 Here genes that are altered at the level of translation are identified. Only those genes with 10 counts in both the riboseq and rnaseq are included in the analysis
 
-
-## Differential TE Volcano plot
-```{r}
-te_volcano_plot <- res_te %>%
-  as_tibble(rownames = "geneid") %>%
-  drop_na(padj) %>%
-  mutate(diff_te = case_when(
-    log2FoldChange >= log2(fold_change_threshold) & padj < pval_threshold & baseMean >= base_mean_threshold ~ "Up",
-    log2FoldChange <= -log2(fold_change_threshold) & padj < pval_threshold & baseMean >= base_mean_threshold ~ "Down",
-    TRUE ~ "No change"
-  )) %>%
-  ggplot(aes(x = log2FoldChange, y = -log10(padj), color = diff_te)) +
-  geom_point(size = 0.1) +
-  geom_vline(xintercept = c(log2(fold_change_threshold), -log2(fold_change_threshold)), linetype = 11, size = 0.2) +
-  geom_hline(yintercept = -log10(pval_threshold), linetype = 11, size = 0.2) +
-  labs(x = "Log2 fold change (TS/NTS)", title = "Translation efficency", color = "") +
-  theme_bw() +
-  xlim(-6.5, 6.5) +
-  scale_color_manual(values = c("#D55E00", "#999999", "#56B4E9"))
-te_volcano_plot
-
-ggsave(plot = te_volcano_plot, filename = paste(results_dir, "Figure_3.5_S4.png", sep = ""), width = 6, height = 4, device = "png", dpi = 700)
-```
 ## Diff TE scatter plot
 ```{r}
 res_rnaseq_tib <- res_rnaseq %>%
@@ -264,15 +240,14 @@ te_scatter_plot <- diff_plot_data %>%
   guides(color = guide_legend(override.aes = list(size = 3, alpha = 1)))
 
 te_scatter_plot
-ggsave(filename = paste(results_dir, "Figure_3.5_C.png", sep = ""), width = 5.5, height = 4, device = "png", dpi = 700)
 ```
 ## Combined Volcano and scatter
 ```{r}
-fig_3.5_bc <- ggarrange(riboseq_cor_rnaseq_volcano_plot, ggplot() +
+fig_5_ab <- ggarrange(riboseq_cor_rnaseq_volcano_plot, ggplot() +
   theme_void(), te_scatter_plot, ncol = 3, widths = c(1, 0.05, 1))
-fig_3.5_bc
+fig_5_ab
 
-ggsave(plot = fig_3.5_bc, filename = paste(results_dir, "Figure_3.5_BaC.png", sep = ""), width = 11, height = 4, device = "png", dpi = 700)
+ggsave(plot = fig_5_ab, filename = paste(results_dir, "Figure_5_A_B.png", sep = ""), width = 11, height = 4, device = "png", dpi = 700)
 ```
 ## Write DE results to file
 Only protein coding genes are saved here
@@ -290,7 +265,7 @@ pcg_sig_res_riboseq <- sig_res_riboseq %>%
 pcg_sig_res_te <- sig_res_te %>%
   filter(!str_detect(Plastid_ID, "XR|NR"))
 
-fn <- paste(results_dir, "Table S3.xlsx",
+fn <- paste(results_dir, "Table S4.xlsx",
   sep = ""
 )
 
@@ -367,7 +342,7 @@ all_gene_enrichment <- enrich_result[[1]]$enrichResult[, c(1, 2, 4, 5, 7, 8, 9, 
 te_gene_enrichment <- enrich_result[[2]]$enrichResult[, c(1, 2, 4, 5, 7, 8, 9, 11)] %>%
   mutate(type = "TE genes")
 
-fn <- paste(results_dir, "Table S4.xlsx",
+fn <- paste(results_dir, "Table S5.xlsx",
   sep = ""
 )
 
@@ -410,7 +385,7 @@ enrichment_plot_all <- bind_rows(all_gene_enrichment[1:10, ]) %>%
 enrichment_plot_all
 
 
-ggsave(enrichment_plot_all, filename = paste(results_dir, "Figure_3.5_D.png", sep = ""), width = 5, height = 5, device = "png", dpi = 700)
+ggsave(enrichment_plot_all, filename = paste(results_dir, "Figure_5C.png", sep = ""), width = 5, height = 5, device = "png", dpi = 700)
 ```
 # DNA repair genes
 ## Transation only change
@@ -448,7 +423,7 @@ dna_repair_boxplots <- bind_rows(
   scale_fill_manual(values = c("#D55E00", "#56B4E9")) +
   theme(strip.text = element_text(face = "italic"), strip.background = element_blank())
 dna_repair_boxplots
-ggsave(dna_repair_boxplots, filename = paste(results_dir, "Figure_3.5_E.png", sep = ""), width = 6, height = 6, device = "png", dpi = 700)
+ggsave(dna_repair_boxplots, filename = paste(results_dir, "Figure_5D.png", sep = ""), width = 6, height = 6, device = "png", dpi = 700)
 ```
 
 
@@ -527,8 +502,8 @@ sample_data <- sample_data %>%
 track_data <- dplyr::mutate(sample_data, track_id = condition, colour_group = type)
 ```
 
-## Track plots
-### Brca1
+
+## Plot Brca1 coverage
 ```{r message=FALSE, warning=FALSE}
 selected_gene <- "Brca1"
 selected_transcript <- AnnotationDbi::select(cgr_txdb, selected_gene,
@@ -577,5 +552,5 @@ brca1_plot <- coverage_track / annotation_track +
   plot_layout(heights = c(3.5, 1)) +
   theme(strip.background = element_rect(fill = "white"))
 brca1_plot
-ggsave(brca1_plot, filename = paste(results_dir, "Figure_3.5_F.png", sep = ""), width = 12, height = 6, device = "png", dpi = 700)
+ggsave(brca1_plot, filename = paste(results_dir, "Figure_5E.png", sep = ""), width = 12, height = 6, device = "png", dpi = 700)
 ```
