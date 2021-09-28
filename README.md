@@ -203,32 +203,32 @@ Here we make the required alignment tracks for figures from the genome and trans
 ```
 
 
-## Results section 2.1: Quality control 
+## Quality control of RNA-seq and Ribo-seq data
 Assessment of prerocessing and read length, phasing, metagene profiles for the Ribo-seq data
 ```
-Rscript ./scripts/section_2.1.R
+results/r_scripts/section_2_1.Rmd
 ```
 
-## Results section 2.2 ORF identification
+## ORF identification 
 Outputs of the ORF-RATER algorithm for the Chinese hamster genome
 ```
-Rscript ./scripts/section_2.2.R
+results/r_scripts/section_2_2.Rmd
 ```
 
-## Results section 2.3 Upstream ORF analysis
+## Upstream ORF analysis
 Analysis of the global effect of uORFs at the transcript level
 ```
-Rscript ./scripts/section_2.3.R
+results/r_scripts/section_2_3.Rmd
 ```
 
-## Results section 2.4 Differential Translation analysis of annotated protein coding genes
+## Differential Expression/Translation analysis for annotated protein coding genes
 DESeq2 analysis of the NCBI annotated protein coding genes annotated in the Chinese hamster genome
 ```
-Rscript ./scripts/section_2.4.R
+results/r_scripts/section_2_4.Rmd
 ```
 
-## Results section 2.5 Differential Translation analysis of ORFs in non-coding RNA
-DESeq2 analysis of ORFs identified in the Chinese hamster genome
+## Differential Expression/Translation analysis for ORFs in non-coding RNA
+DESeq2 analysis of ORFs identified in the Chinese hamster ncRNA
 ```
-Rscript ./scripts/section_2.5.R
+results/r_scripts/section_2_5.Rmd
 ```
