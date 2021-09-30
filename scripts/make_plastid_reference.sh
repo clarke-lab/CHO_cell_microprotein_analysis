@@ -22,7 +22,7 @@ plastid_reference/protein_coding_reference.tmp.gtf
 awk -F'\t' '$3 == "peakfrac" {print $1}' orfrater_analysis/tid_removal_summary.txt > \
 plastid_reference/peakfrac.txt 
 
-grep -Fv plastid_reference/peakfrac.txt diff_translation_analysis/protein_coding_reference.tmp.gtf > \
+grep -Fv plastid_reference/peakfrac.txt plastid_reference/protein_coding_reference.tmp.gtf > \
 plastid_reference/protein_coding_reference.gtf 
 
 rm plastid_reference/protein_coding_reference.tmp.gtf

@@ -57,7 +57,7 @@ wget "$url"GCF_003668045.3_CriGri-PICRH-1.0/GCF_003668045.3_CriGri-PICRH-1.0_gen
 wget "$url"/GCF_003668045.3_CriGri-PICRH-1.0/GCF_003668045.3_CriGri-PICRH-1.0_genomic.gtf.gz \
 -P reference_genome
 
-wget "$url"/GCF_003668045.3_CriGri-PICRH-1.0/GCF_003668045.3_CriGri-PICRH-1.0_feature_table.txt \
+wget "$url"/GCF_003668045.3_CriGri-PICRH-1.0/GCF_003668045.3_CriGri-PICRH-1.0_feature_table.txt.gz \
 -P reference_genome 
 
 wget "$url"/GCF_003668045.3_CriGri-PICRH-1.0/GCF_003668045.3_CriGri-PICRH-1.0_genomic.gff.gz \
@@ -80,7 +80,7 @@ mkdir reference_genome/star_index_ncbi
 # build the index
 $star_path/STAR --runThreadN 16 \
      --runMode genomeGenerate \
-     --sjdbOverhang 124 \
+     --sjdbOverhang 74 \
      --genomeChrBinNbits 16 \
      --genomeDir reference_genome/star_index_ncbi \
      --genomeFastaFiles reference_genome/GCF_003668045.3_CriGri-PICRH-1.0_genomic.fna \
@@ -191,6 +191,9 @@ Then DESeq2 is using to calculate differential expression from the Ribo-seq and 
 wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/635/GCF_000001635.27_GRCm39/GCF_000001635.27_GRCm39_feature_table.txt.gz \
 -P reference_genome
 
+gunzip reference_genome/GCF_000001635.27_GRCm39_feature_table.txt.gz
+
+
 Rscript ./scripts/run_deseq2.R
 ```
 
@@ -199,7 +202,7 @@ Rscript ./scripts/run_deseq2.R
 ## Make alignment tracks
 Here we make the required alignment tracks for figures from the genome and transcriptome BAMs using individual replicates and the merged data
 ```
-./scripts/make_coverae_tracks.sh
+./scripts/make_coverage_tracks.sh
 ```
 
 

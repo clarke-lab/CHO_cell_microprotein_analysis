@@ -1,7 +1,10 @@
 data/riboseq_*/*
 data/rnaseq_*/*
 data/preproccessed*
-reference_genome
+reference_genome/GCF*
+reference_genome/star_index*
+reference_genome/contaminant_sequences/star_*
+Log.out
 orfrater_analysis*
 .Rhistory
 alignment_tracks
@@ -9,7 +12,13 @@ periodicity_analysis
 script_backup
 results/read_counts
 results/read_length*
-results/sec*
+results/section2.1/*
+results/section2.2/*.png
+results/section2.2/*.xlsx
+results/section2.3/*
+results/section2.4/*
+results/section2.5/*
+results/section2.6/*
 results/r_scripts/*html
 results/r_scripts/*Rproj
 amino_acid_analysis

@@ -1,0 +1,345 @@
+---
+title: "Results 2.6"
+output: html_notebook
+---
+
+
+
+```{r include=FALSE}
+package_list <- c(
+  "tidyverse", "DESeq2", "writexl", "viridis", "ggpp"
+)
+
+suppressMessages(lapply(package_list, require, character.only = TRUE))
+
+results_dir <- "/mnt/HDD2/colin/ribosome_footprint_profiling/results/section2.6/"
+if (!dir.exists(results_dir)) {
+  dir.create(results_dir, recursive = TRUE)
+}
+```
+
+# ORF identifications
+```{r}
+load("../section2.2/results_2_2.RData")
+```
+
+### Load bedgraph data
+```{r include=FALSE}
+chx_bedgraph <- read_tsv("/mnt/HDD2/colin/ribosome_footprint_profiling/alignment_tracks/merged/chx.p.site.transcriptome.bedgraph",
+  col_names = F
+) %>% mutate(ribotype = "chx")
+
+
+chx_full_bedgraph <- read_tsv("/mnt/HDD2/colin/ribosome_footprint_profiling/alignment_tracks/merged/chx.fullcov.transcriptome.bedgraph",
+  col_names = F
+) %>% mutate(ribotype = "chx_full")
+
+bedgraph_data <- bind_rows( chx_bedgraph,chx_full_bedgraph)
+
+range01 <- function(x) {
+  (x - min(x)) / (max(x) - min(x))
+}
+```
+
+# Load mass spectra
+```{r include=FALSE}
+Adalimumab_protein_1_23_aa <- read_delim("/mnt/HDD2/colin/ribosome_footprint_profiling/data/mass_spectra/20210924_Adalimumab_HCP_XM_027400028.3_23 aa.txt", 
+    "\t", escape_double = FALSE, trim_ws = TRUE, 
+    skip = 2)
+
+Bevacizumab_protein_1_93aa <- read_delim("/mnt/HDD2/colin/ribosome_footprint_profiling/data/mass_spectra/20210924_Bevacizumab_Protein 1   93 aa peptide spectrum.txt", 
+    "\t", escape_double = FALSE, trim_ws = TRUE, 
+    skip = 2)
+
+Bevacizumab_protein_2_80aa <- read_delim("/mnt/HDD2/colin/ribosome_footprint_profiling/data/mass_spectra/20210924_Bevacizumab_Protein 2  80aa peptide spectrum.txt", 
+    "\t", escape_double = FALSE, trim_ws = TRUE, 
+    skip = 2)
+```
+
+
+
+# Adalimumab 
+```{r}
+identified_sORF<-"XM_027400028.2_349340733_23aa"
+
+Adalimumab_protein_info <- table_s3 %>%
+  filter(`ORF-RATER name` == identified_sORF)
+
+Adalimumab_protein_1_23_aa_ms_plot <- Adalimumab_protein_1_23_aa %>%
+  mutate(int= `Intensity [counts]`/10^6) %>%
+  ggplot(aes(x=`m/z`, ymax=int, ymin=0)) +
+  geom_linerange() +
+  theme_bw() +
+  labs(y="Intensity [counts] (10^6)", title = paste0("uORF: ", Adalimumab_protein_info$`ORF-RATER name`), subtitle = "Identified peptide = [R].EGMRQKQQQNR.[I]") +
+  geom_text_npc(aes(npcx=0.05, npcy=0.95),label="Xcorr=2.28",size=4)
+  Adalimumab_protein_1_23_aa_ms_plot
+ggsave(plot = Adalimumab_protein_1_23_aa_ms_plot, filename = paste(results_dir, "Figure_7D.png", sep = ""), dpi = 700, device = "png", width = 5, height = 3)  
+```
+# Ribo-seq coverage
+```{r}
+Adalimumab_protein_info
+
+selected_transcript <- "XM_035440621.1"
+
+  current_orf <-table_s3 %>%
+    filter(`Transcript ID` == selected_transcript & `ORF-RATER name` == "XM_027400028.2_349340733_23aa") 
+  current_orf
+```
+
+
+```{r}
+chx_p_scaled <- bedgraph_data %>%
+  filter(X1 == selected_transcript) %>%
+  filter(ribotype == "chx" ) %>%
+  filter(X2 <= 1000) %>%
+  mutate(scale_bpm = range01(X4)) 
+
+chx_full_scaled <- bedgraph_data %>%
+  filter(X1 == selected_transcript) %>%
+  filter(ribotype == "chx_full") %>%
+ filter(X2 <= 1000) %>%
+  
+  mutate(scale_bpm = range01(X4)) 
+
+track_data <- bind_rows(chx_p_scaled, chx_full_scaled)
+
+track_data <- track_data %>%
+  mutate(frame=ifelse(X2 >= current_orf$`Transcript start position` & X2 <= current_orf$`Transcript stop position` & ribotype == "chx", (X2 - current_orf$`Transcript start position`) %% 3, 
+                      ifelse(X2 >= 580 & X2 <= 3018 & ribotype == "chx" , (X2 - 580) %% 3, NA))) 
+
+
+chx_plot <- track_data %>%
+    filter(ribotype == "chx" | ribotype == "chx_full") %>%
+   ggplot(aes(x = X2, y = scale_bpm, fill=frame, alpha=ribotype)) +
+  annotate("rect", xmin = c(current_orf$`Transcript start position`,579), xmax = c(current_orf$`Transcript stop position`,1000), ymin = 0, ymax = 1,
+        alpha = .1, fill=c("#999933", "#CC6677")) +
+   geom_bar(stat = "identity", position = "identity") + 
+  scale_fill_viridis() +
+  # geom_vline(xintercept =c(36,141,168,617),  size=0.2, linetype=11) +
+  scale_alpha_discrete(range=c(1,0.3)) +
+  scale_x_continuous(expand = c(0,0)) +
+  scale_y_continuous(expand = c(0,0)) +
+  theme_bw() + theme(plot.margin = unit(c(5.5,12,5.5,5.5),"pt")) +
+  geom_text_npc(aes(npcx=0.95, npcy=0.95),label="CHX",size=6)+
+  labs(
+    x = "Transcript coordinates (nts)",
+    y = "Ribo-seq (Scaled BPM)"
+  ) 
+chx_plot$layers <-c(geom_bar(stat = "identity", position = "identity"),chx_plot$layers) 
+chx_plot + theme(legend.position = "none")
+
+ggsave(filename = paste(results_dir,"Figure_7C.png", sep=""), width = 6, height =3, device = "png", dpi = 700)
+```
+
+
+#Bevacizumab
+```{r}
+identified_sORF<-"XM_027419317.2_101524524_93aa"
+
+Bevacizumab_protein_1_info <-table_s3 %>%
+  filter(`ORF-RATER name` == identified_sORF)
+
+Bevacizumab_protein_1_93aa_ms_plot  <- Bevacizumab_protein_1_93aa %>%
+  mutate(int= `Intensity [counts]`/10^6) %>%
+  ggplot(aes(x=`m/z`, ymax=int, ymin=0)) +
+  geom_linerange() +
+  theme_bw() +
+  labs(y="Intensity [counts] (10^6)", title = paste0("ouORF: ", Bevacizumab_protein_1_info$`ORF-RATER name`), subtitle = "Identified peptide = [R].IWSAASAITR.[R]") +
+  geom_text_npc(aes(npcx=0.995, npcy=0.95),label="Xcorr = 1.91",size=4)
+Bevacizumab_protein_1_93aa_ms_plot
+ggsave(plot = Bevacizumab_protein_1_93aa_ms_plot, filename = paste(results_dir, "Figure_7F.png", sep = ""), dpi = 700, device = "png", width = 5, height = 3)  
+```
+```{r}
+Bevacizumab_protein_1_info
+
+selected_transcript <- "XM_035444988.1"
+
+  current_orf <-table_s3 %>%
+    filter( `ORF-RATER name` == "XM_027419317.2_101524524_93aa") 
+  current_orf
+```
+```{r}
+chx_p_scaled <- bedgraph_data %>%
+  filter(X1 == selected_transcript) %>%
+  filter(ribotype == "chx" ) %>%
+  filter(X2 > 120 & X2 <= 1000) %>%
+  #filter(X2 <= max(current_orf$`Transcript stop position`) & X2 >= 0) %>%
+  mutate(scale_bpm = range01(X4)) 
+
+chx_full_scaled <- bedgraph_data %>%
+  filter(X1 == selected_transcript) %>%
+  filter(X2 > 120 & X2 <= 1000) %>%
+  filter(ribotype == "chx_full") %>%
+  #filter(X2 <= 1056 & X2 >= 0) %>%
+  mutate(scale_bpm = range01(X4)) 
+
+track_data <- bind_rows(chx_p_scaled, chx_full_scaled)
+
+track_data <- track_data %>%
+  mutate(frame=ifelse(X2 >= current_orf$`Transcript start position` & X2 <= current_orf$`Transcript stop position` & ribotype == "chx", (X2 - current_orf$`Transcript start position`) %% 3, 
+                      ifelse(X2 >= 268 & X2 <= 1000 & ribotype == "chx" , (X2 - 268) %% 3, NA))) 
+
+chx_plot <- track_data %>%
+    filter(ribotype == "chx" | ribotype == "chx_full") %>%
+   ggplot(aes(x = X2, y = scale_bpm, fill=frame, alpha=ribotype)) +
+  annotate("rect", xmin = c(current_orf$`Transcript start position`,268), xmax = c(current_orf$`Transcript stop position`,1000), ymin = 0, ymax = 1,
+        alpha = .1, fill=c("#332288", "#CC6677")) +
+   geom_bar(stat = "identity", position = "identity") + 
+  scale_fill_viridis() +
+  # geom_vline(xintercept =c(36,141,168,617),  size=0.2, linetype=11) +
+  scale_alpha_discrete(range=c(1,0.3)) +
+  scale_x_continuous(expand = c(0,0)) +
+  scale_y_continuous(expand = c(0,0)) +
+  theme_bw() + theme(plot.margin = unit(c(5.5,12,5.5,5.5),"pt")) +
+  geom_text_npc(aes(npcx=0.95, npcy=0.95),label="CHX",size=6)+
+  labs(
+    x = "Transcript coordinates (nts)",
+    y = "Ribo-seq (Scaled BPM)"
+  ) 
+chx_plot$layers <-c(geom_bar(stat = "identity", position = "identity"),chx_plot$layers) 
+chx_plot + theme(legend.position = "none")
+
+ggsave(filename = paste(results_dir,"Figure_7E.png", sep=""), width = 6, height = 3, device = "png", dpi = 700)
+```
+
+
+```{r}
+identified_sORF<-"XM_027386843.2_10927850_80aa"
+
+Bevacizumab_protein_2_info <-table_s3 %>%
+  filter(`ORF-RATER name` == identified_sORF)
+
+Bevacizumab_protein_2_80aa_ms_plot <- Bevacizumab_protein_2_80aa %>%
+  mutate(int= `Intensity [counts]`/10^6) %>%
+  ggplot(aes(x=`m/z`, ymax=int, ymin=0)) +
+  geom_linerange() +
+  theme_bw() +
+  labs(y="Intensity [counts] (10^6)", title = paste0("uORF: ",Bevacizumab_protein_2_info$`ORF-RATER name`), subtitle = "Identified peptide = [-].LGQSSGPGSDRQGR.[S]") +
+  geom_text_npc(aes(npcx=0.05, npcy=0.95),label="Xcorr = 1.90",size=4)
+Bevacizumab_protein_2_80aa_ms_plot
+ggsave(plot = Bevacizumab_protein_2_80aa_ms_plot, filename = paste(results_dir, "Figure_7H.png", sep = ""), dpi = 700, device = "png", width = 5, height = 3) 
+```
+```{r}
+Bevacizumab_protein_2_info
+
+selected_transcript <- "XM_027386843.2"
+
+  current_orf <-table_s3 %>%
+    filter( `ORF-RATER name` == "XM_027386843.2_10927850_80aa") 
+  current_orf
+```
+```{r}
+chx_p_scaled <- bedgraph_data %>%
+  filter(X1 == selected_transcript) %>%
+  filter(ribotype == "chx" ) %>%
+  filter(X2 <= 1000) %>%
+  mutate(scale_bpm = range01(X4)) 
+
+chx_full_scaled <- bedgraph_data %>%
+  filter(X1 == selected_transcript) %>%
+  filter(ribotype == "chx_full") %>%
+ filter(X2 <= 1000) %>%
+  
+  mutate(scale_bpm = range01(X4)) 
+
+track_data <- bind_rows(chx_p_scaled, chx_full_scaled)
+
+track_data <- track_data %>%
+  mutate(frame=ifelse(X2 >= current_orf$`Transcript start position` & X2 <= current_orf$`Transcript stop position` & ribotype == "chx", (X2 - current_orf$`Transcript start position`) %% 3, 
+                      ifelse(X2 >= 400 & X2 <= 3018 & ribotype == "chx" , (X2 - 400) %% 3, NA))) 
+
+
+chx_plot <- track_data %>%
+    filter(ribotype == "chx" | ribotype == "chx_full") %>%
+   ggplot(aes(x = X2, y = scale_bpm, fill=frame, alpha=ribotype)) +
+  annotate("rect", xmin = c(current_orf$`Transcript start position`,400), xmax = c(current_orf$`Transcript stop position`,1000), ymin = 0, ymax = 1,
+        alpha = .1, fill=c("#999933", "#CC6677")) +
+   geom_bar(stat = "identity", position = "identity") + 
+  scale_fill_viridis() +
+  # geom_vline(xintercept =c(36,141,168,617),  size=0.2, linetype=11) +
+  scale_alpha_discrete(range=c(1,0.3)) +
+  scale_x_continuous(expand = c(0,0)) +
+  scale_y_continuous(expand = c(0,0)) +
+  theme_bw() + theme(plot.margin = unit(c(5.5,12,5.5,5.5),"pt")) +
+  geom_text_npc(aes(npcx=0.95, npcy=0.95),label="CHX",size=6)+
+  labs(
+    x = "Transcript coordinates (nts)",
+    y = "Ribo-seq (Scaled BPM)"
+  ) 
+chx_plot$layers <-c(geom_bar(stat = "identity", position = "identity"),chx_plot$layers) 
+chx_plot + theme(legend.position = "none")
+
+ggsave(filename = paste(results_dir,"Figure_7G.png", sep=""), width = 6, height =3, device = "png", dpi = 700)
+```
+
+```{r}
+harr_min_nd <- read_tsv("/mnt/HDD2/colin/ribosome_footprint_profiling/alignment_tracks/merged/harr-nd.bedgraph",
+  col_names = F
+) %>% mutate(ribotype = "harr-nd")
+
+chx_bedgraph <- read_tsv("/mnt/HDD2/colin/ribosome_footprint_profiling/alignment_tracks/merged/chx.p.site.transcriptome.bedgraph",
+  col_names = F
+) %>% mutate(ribotype = "chx")
+
+
+chx_full_bedgraph <- read_tsv("/mnt/HDD2/colin/ribosome_footprint_profiling/alignment_tracks/merged/chx.fullcov.transcriptome.bedgraph",
+  col_names = F
+) %>% mutate(ribotype = "chx_full")
+```
+```{r}
+bedgraph_data <- bind_rows(harr_min_nd, chx_bedgraph,chx_full_bedgraph)
+
+range01 <- function(x) {
+  (x - min(x)) / (max(x) - min(x))
+}
+selected_transcript <- "XR_003481490.2_407599334_59aa"
+
+  current_orf <-table_s3 %>%
+    filter(`ORF-RATER name` == selected_transcript) %>%
+   filter(`ORF type` == "New")
+  current_orf
+  
+chx_p_scaled <- bedgraph_data %>%
+  filter(X1 == current_orf$`Transcript ID`) %>%
+  filter(ribotype == "chx" ) %>%
+  #filter(X2 <= max(current_orf$`Transcript stop position`) & X2 >= 0) %>%
+  mutate(scale_bpm = range01(X4)) 
+
+chx_full_scaled <- bedgraph_data %>%
+  filter(X1 == current_orf$`Transcript ID`) %>%
+  filter(ribotype == "chx_full") %>%
+  #filter(X2 <= 1056 & X2 >= 0) %>%
+  mutate(scale_bpm = range01(X4)) 
+
+track_data <- bind_rows(chx_p_scaled, chx_full_scaled) %>% 
+  filter(X2 >= 0 & X2 <=1000)
+
+track_data <- track_data %>%
+  mutate(frame=ifelse(X2 >= current_orf$`Transcript start position`[1] & X2 <= current_orf$`Transcript stop position`[1] & ribotype == "chx", (X2 - current_orf$`Transcript start position`[1]) %% 3, NA)) 
+
+chx_plot <- track_data %>%
+    filter(ribotype == "chx" | ribotype == "chx_full") %>%
+   ggplot(aes(x = X2, y = scale_bpm, fill=frame, alpha=ribotype)) +
+ annotate("rect", xmin = c(current_orf$`Transcript start position`), xmax = c(current_orf$`Transcript stop position`), ymin = 0, ymax = 1,
+       alpha = .1, fill=c("#35968CFF")) +
+   geom_bar(stat = "identity", position = "identity") + 
+  scale_fill_viridis() +
+  # geom_vline(xintercept =c(36,141,168,617),  size=0.2, linetype=11) +
+  scale_alpha_discrete(range=c(1,0.3)) +
+  scale_x_continuous(expand = c(0,0)) +
+  scale_y_continuous(expand = c(0,0)) +
+  theme_bw() +
+  geom_text_npc(aes(npcx=0.95, npcy=0.95),label="CHX",size=6) + 
+  labs(
+    x = "Transcript coordinates (nts)",
+    y = "RiboSeq coverage (BPM)",
+    #title = "LOC103161792",
+    subtitle = ""
+  ) 
+chx_plot$layers <-c(geom_bar(stat = "identity", position = "identity"),chx_plot$layers) 
+chx_plot + theme(legend.position = "none")
+
+ggsave(filename = paste(results_dir,"Figure_7_test.png", sep=""), width = 6, height = 3, device= "png", dpi = 700)
+```
+
+

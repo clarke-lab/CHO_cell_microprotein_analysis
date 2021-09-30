@@ -72,5 +72,4 @@ do
   --max_length 31
 done
 
-
-conda deactivate plastid
+conda deactivate

@@ -65,7 +65,7 @@ uorf_per_transcript_plot
     geom_text(stat="count",aes(label=..count..), vjust=-0.1, color="black", size=3) +
     #scale_x_discrete(limits=c(1:2)) +
     theme_bw() +
-    labs(x="ouORF per transcript", y="# transcripts") 
+    labs(x="ouORFs per transcript", y="# transcripts") 
     
   ouorf_per_transcript_plot
   
@@ -251,7 +251,7 @@ uORF_te_density_plot <- uORF_te_data_plot  %>%
   xlim(0,4) +
   theme(legend.position = "none") +
   scale_color_manual(values=c("#DCE319FF","#73D055FF","#238A8DFF","#453781FF")) +
-  labs(color="", y="Cumlative proportion", x=expression("Main ORF CDS TE (Log"[2]  * ")")) + 
+  labs(color="", y="Cumulative proportion", x=expression("Main ORF CDS TE (Log"[2]  * ")")) + 
 
   theme(legend.position = "none" ) + 
   annotation_custom(orf_stat_table, xmin = 1.08, xmax = 1, ymin = 0.89, ymax = 0.95)
@@ -325,7 +325,7 @@ uORF_rna_density_plot <- uORF_rna_data_plot  %>%
   xlim(0,4) +
   theme(legend.position = c(0.7,0.15), legend.text = element_text(size=5), legend.spacing = unit(0.1,"cm")) +
   scale_color_manual(values=c("#DCE319FF","#73D055FF","#238A8DFF","#453781FF")) +
-  labs(color="", y="Cumlative proportion", x=expression("RNA abundance RPKM (Log"[2]  * ")")) + 
+  labs(color="", y="Cumulative proportion", x=expression("RNA abundance RPKM (Log"[2]  * ")")) + 
   theme(legend.position = "none" ) + 
   annotation_custom(orf_stat_table, xmin = 0.53, xmax = 0.53, ymin = 0.93, ymax = 0.93)
 uORF_rna_density_plot 
@@ -379,7 +379,7 @@ ouORF_te_density_plot <- ouORF_te_data_plot  %>%
   theme_bw() +
   xlim(0,4) +
   scale_color_manual(values=c("#DCE319FF","#73D055FF")) +
-  labs(color="", y="Cumlative proportion", x=expression("Main ORF CDS TE (Log"[2]  * ")")) + 
+  labs(color="", y="Cumulative proportion", x=expression("Main ORF CDS TE (Log"[2]  * ")")) + 
   theme(legend.position = "none" ) +
   annotation_custom(orf_stat_table, xmin = 0.75, xmax = 1.07, ymin = 0.96, ymax =1)
 ouORF_te_density_plot  
@@ -430,7 +430,7 @@ ouORF_rna_density_plot <- ouORF_rna_data_plot  %>%
   theme_bw() +
   xlim(0,4) +
   scale_color_manual(values=c("#DCE319FF","#73D055FF")) +
-  labs(color="", y="Cumlative proportion", x=expression("RNA abundance RPKM (Log"[2]  * ")")) + 
+  labs(color="", y="Cumulative proportion", x=expression("RNA abundance RPKM (Log"[2]  * ")")) + 
   theme(legend.position = "none" ) +
   annotation_custom(orf_stat_table, xmin = 0.45, xmax = 0.45, ymin = 0.96, ymax =1)
 ouORF_rna_density_plot  
@@ -444,14 +444,14 @@ ouORF_rna_density_plot
 # comparison of a single ATG initiated uORF and ouORF
 single_atg_uorf_data <- all_te_data %>%
   mutate(class2 = case_when(
-    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "ATG" ~"1 uORF ATG",
-    num_ouORFs == 1 & is.na(num_uORFs) & `Start codon.ouORF` == "ATG" ~"1 ouORF ATG",
+    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "ATG" ~"1 uORF AUG",
+    num_ouORFs == 1 & is.na(num_uORFs) & `Start codon.ouORF` == "ATG" ~"1 ouORF AUG",
     is.na(num_uORFs) & is.na(num_uORFs) & tid %in% control_transcripts ~"0"
   )) %>%
   filter(!is.na(class2))
 
 wilcox_test_subset_1 <-single_atg_uorf_data %>%
-  filter(class2 == "1 uORF ATG" | class2 == "1 ouORF ATG") 
+  filter(class2 == "1 uORF AUG" | class2 == "1 ouORF AUG") 
 
 wilcox_test_uorf_ouorf_te <- wilcox.test(av_all ~ class2, data = wilcox_test_subset_1,
                    exact = FALSE )
@@ -484,7 +484,7 @@ single_atg_uorf_plot_te <- single_atg_uorf_data %>%
   xlim(0,4) +
   theme(legend.position = c(0.7,0.15), legend.text = element_text(size=5), legend.spacing = unit(0.1,"cm")) +
   scale_color_manual(values=c("#DCE319FF","#73D055FF","#238A8DFF")) +
-  labs(color="", y="Cumlative proportion", x=expression("Main ORF CDS TE (Log"[2]  * ")")) + 
+  labs(color="", y="Cumulative proportion", x=expression("Main ORF CDS TE (Log"[2]  * ")")) + 
   theme(legend.position = "none" ) + 
   annotation_custom(orf_stat_table, xmin = 1.2, xmax = 1.2, ymin = 0.97, ymax = 0.95)
 single_atg_uorf_plot_te
@@ -496,14 +496,14 @@ single_atg_uorf_plot_te
 # comparison of a single ATG initiated uORF and ouORF
 single_atg_uorf_data <- all_rna_data %>%
   mutate(class2 = case_when(
-    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "ATG" ~"1 uORF ATG",
-    num_ouORFs == 1 & is.na(num_uORFs) & `Start codon.ouORF` == "ATG" ~"1 ouORF ATG",
+    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "ATG" ~"1 uORF AUG",
+    num_ouORFs == 1 & is.na(num_uORFs) & `Start codon.ouORF` == "ATG" ~"1 ouORF AUG",
     is.na(num_uORFs) & is.na(num_uORFs) & tid %in% control_transcripts ~"0"
   )) %>%
   filter(!is.na(class2))
 
 wilcox_test_subset_1 <-single_atg_uorf_data %>%
-  filter(class2 == "1 uORF ATG" | class2 == "1 ouORF ATG") 
+  filter(class2 == "1 uORF AUG" | class2 == "1 ouORF AUG") 
 
 wilcox_test_uorf_ouorf_rna <- wilcox.test(av_all ~ class2, data = wilcox_test_subset_1,
                    exact = FALSE )
@@ -536,7 +536,7 @@ single_atg_uorf_plot_rna <- single_atg_uorf_data %>%
   xlim(0,4) +
   theme(legend.position = c(0.7,0.15), legend.text = element_text(size=5), legend.spacing = unit(0.1,"cm")) +
   scale_color_manual(values=c("#DCE319FF","#73D055FF","#238A8DFF")) +
-  labs(color="", y="Cumlative proportion", x=expression("RNA abundance RPKM (Log"[2]  * ")")) + 
+  labs(color="", y="Cumulative proportion", x=expression("RNA abundance RPKM (Log"[2]  * ")")) + 
   theme(legend.position = "none" ) + 
   annotation_custom(orf_stat_table, xmin = 1.35, xmax = 1.35, ymin = 0.97, ymax = 0.95)
 
@@ -553,33 +553,33 @@ single_atg_uorf_plot_rna <- single_atg_uorf_data %>%
 # comparison of different start codons for uORF
 single_uORF_codon_te <- all_te_data %>%
   mutate(class2 = case_when(
-    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "ATG" ~"ATG",
-    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "CTG" ~"CTG",
-    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "GTG" ~"GTG",
-    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "TTG" ~"TTG",
+    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "ATG" ~"AUG",
+    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "CTG" ~"CUG",
+    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "GTG" ~"GUG",
+    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "TTG" ~"UUG",
     is.na(num_ouORFs) & is.na(num_ouORFs) & tid %in% control_transcripts ~"0"
   ))
 
 wilcox_test_ATG_uORF_data <-single_uORF_codon_te %>%
-  filter(class2 == "ATG" | class2 == "0") 
+  filter(class2 == "AUG" | class2 == "0") 
 
 wilcox_test_ATG_uORF <- wilcox.test(av_all ~ class2, data = wilcox_test_ATG_uORF_data,
                    exact = FALSE )
 
 wilcox_test_CTG_uORF_data <-single_uORF_codon_te %>%
-  filter(class2 == "CTG" | class2 == "0") 
+  filter(class2 == "CUG" | class2 == "0") 
 
 wilcox_test_CTG_uORF <- wilcox.test(av_all ~ class2, data = wilcox_test_CTG_uORF_data,
                    exact = FALSE )
 
 wilcox_test_GTG_uORF_data <-single_uORF_codon_te %>%
-  filter(class2 == "GTG" | class2 == "0") 
+  filter(class2 == "GUG" | class2 == "0") 
 
 wilcox_test_GTG_uORF <- wilcox.test(av_all ~ class2, data = wilcox_test_GTG_uORF_data,
                    exact = FALSE )
 
 wilcox_test_TTG_uORF_data <-single_uORF_codon_te %>%
-  filter(class2 == "TTG" | class2 == "0") 
+  filter(class2 == "UUG" | class2 == "0") 
 
 wilcox_test_TTG_uORF <- wilcox.test(av_all ~ class2, data = wilcox_test_TTG_uORF_data,
                    exact = FALSE )
@@ -623,7 +623,7 @@ single_uORF_codon_te_ecdf <- single_uORF_codon_te %>%
   theme_bw() +
     theme(legend.position = "none") +
   scale_color_manual(values=c("#DCE319FF","#73D055FF","#20A387FF","#33638DFF","#440154FF")) +
-  labs(color="", y="Cumlative proportion", x=expression("Main ORF CDS TE (Log"[2]  * ")")) + 
+  labs(color="", y="Cumulative proportion", x=expression("Main ORF CDS TE (Log"[2]  * ")")) + 
   theme(legend.position = "none" ) + 
   annotation_custom(orf_stat_table, xmin = 0.98, xmax = 1, ymin = 0.87, ymax = 0.95)
 
@@ -636,33 +636,33 @@ single_uORF_codon_te_ecdf
 # comparison of different start codons for uORF
 single_uORF_codon_rna <- all_rna_data %>%
   mutate(class2 = case_when(
-    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "ATG" ~"ATG",
-    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "CTG" ~"CTG",
-    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "GTG" ~"GTG",
-    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "TTG" ~"TTG",
+    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "ATG" ~"AUG",
+    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "CTG" ~"CUG",
+    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "GTG" ~"GUG",
+    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "TTG" ~"UUG",
     is.na(num_ouORFs) & is.na(num_ouORFs) & tid %in% control_transcripts ~"0"
   ))
 
 wilcox_test_ATG_uORF_data <-single_uORF_codon_rna %>%
-  filter(class2 == "ATG" | class2 == "0") 
+  filter(class2 == "AUG" | class2 == "0") 
 
 wilcox_test_ATG_uORF <- wilcox.test(av_all ~ class2, data = wilcox_test_ATG_uORF_data,
                    exact = FALSE )
 
 wilcox_test_CTG_uORF_data <-single_uORF_codon_rna %>%
-  filter(class2 == "CTG" | class2 == "0") 
+  filter(class2 == "CUG" | class2 == "0") 
 
 wilcox_test_CTG_uORF <- wilcox.test(av_all ~ class2, data = wilcox_test_CTG_uORF_data,
                    exact = FALSE )
 
 wilcox_test_GTG_uORF_data <-single_uORF_codon_rna %>%
-  filter(class2 == "GTG" | class2 == "0") 
+  filter(class2 == "GUG" | class2 == "0") 
 
 wilcox_test_GTG_uORF <- wilcox.test(av_all ~ class2, data = wilcox_test_GTG_uORF_data,
                    exact = FALSE )
 
 wilcox_test_TTG_uORF_data <-single_uORF_codon_rna %>%
-  filter(class2 == "TTG" | class2 == "0") 
+  filter(class2 == "UUG" | class2 == "0") 
 
 wilcox_test_TTG_uORF <- wilcox.test(av_all ~ class2, data = wilcox_test_TTG_uORF_data,
                    exact = FALSE )
@@ -706,7 +706,7 @@ single_uORF_codon_rna_ecdf <- single_uORF_codon_rna %>%
   theme_bw() +
     theme(legend.position = "none") +
   scale_color_manual(values=c("#DCE319FF","#73D055FF","#20A387FF","#33638DFF","#440154FF")) +
-  labs(color="", y="Cumlative proportion", x=expression("RNA abundance RPKM (Log"[2]  * ")")) + 
+  labs(color="", y="Cumulative proportion", x=expression("RNA abundance RPKM (Log"[2]  * ")")) + 
   theme(legend.position = "none" ) + 
   annotation_custom(orf_stat_table, xmin = 0.55, xmax = 0.55, ymin = 0.87, ymax = 0.95)
 
@@ -789,7 +789,7 @@ single_ouORF_codon_te_ecdf <- single_ouORF_codon_te %>%
   theme_bw() +
     theme(legend.position = "none") +
   scale_color_manual(values=c("#DCE319FF","#73D055FF","#20A387FF","#33638DFF","#440154FF")) +
-  labs(color="", y="Cumlative proportion", x=expression("Main ORF CDS TE (Log"[2]  * ")")) + 
+  labs(color="", y="Cumulative proportion", x=expression("Main ORF CDS TE (Log"[2]  * ")")) + 
   theme(legend.position = "none" ) + 
   annotation_custom(orf_stat_table, xmin = 0.98, xmax = 1, ymin = 0.87, ymax = 0.95)
 
@@ -872,7 +872,7 @@ single_ouORF_codon_rna_ecdf <- single_ouORF_codon_rna %>%
   theme_bw() +
     theme(legend.position = "none") +
   scale_color_manual(values=c("#DCE319FF","#73D055FF","#20A387FF","#33638DFF","#440154FF")) +
-  labs(color="", y="Cumlative proportion", x=expression("RNA abundance RPKM (Log"[2]  * ")")) + 
+  labs(color="", y="Cumulative proportion", x=expression("RNA abundance RPKM (Log"[2]  * ")")) + 
   theme(legend.position = "none" ) + 
   annotation_custom(orf_stat_table, xmin = 0.53, xmax = 0.53, ymin = 0.87, ymax = 0.95)
 single_ouORF_codon_rna_ecdf

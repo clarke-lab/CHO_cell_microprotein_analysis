@@ -32,6 +32,8 @@ load("/mnt/HDD2/colin/ribosome_footprint_profiling/results/section2.2/results_2_
 
 ## Proportion of start codons and ORF types
 ```{r}
+sum(table(table_s3$`ORF type`))
+
 table_s3 %>%
   filter(`ORF type`  != "Annotated") %>%
   summarise(length(`ORF-RATER name`))
@@ -224,7 +226,7 @@ ouorf_length_plot <- table_s3 %>%
   filter(`ORF type` == "Start overlap") %>%
   ggplot(aes(x=sort(`Length (AAs)`))) +
   geom_histogram(bins=50, fill="#332288") +
-  labs(y="# ouORFs", x = "uORF Length (aa)") +
+  labs(y="# ouORFs", x = "ouORF Length (aa)") +
  # annotate("text", x = 320, y=140, size=1.5, label=paste0("Mean length:\n",round(mean(ouorfs$`Length (AAs)`)), " aa")) +
   #geom_vline(xintercept = median(ouorfs$`Length (AAs)`), color="red", linetype = 11, size = 0.2) +
   theme_bw() + 
@@ -369,7 +371,7 @@ chx_plot <- track_data %>%
 chx_plot$layers <-c(geom_bar(stat = "identity", position = "identity"),chx_plot$layers) 
 chx_plot + theme(legend.position = "none")
 
-ggsave(filename = paste(results_dir,"Figure_2D.png", sep=""), width = 6, height =3, device = "png", dpi = 700)
+ggsave(filename = paste(results_dir,"Figure_3D.png", sep=""), width = 6, height =3, device = "png", dpi = 700)
 ```
 ### Rad51d ouORF
 ```{r}
@@ -417,9 +419,9 @@ chx_plot <- track_data %>%
 chx_plot$layers <-c(geom_bar(stat = "identity", position = "identity"),chx_plot$layers) 
 chx_plot + theme(legend.position = "none")
 
-ggsave(filename = paste(results_dir,"Figure_2E.png", sep=""), width = 6, height = 3, device = "png", dpi = 700)
+ggsave(filename = paste(results_dir,"Figure_3E.png", sep=""), width = 6, height = 3, device = "png", dpi = 700)
 ```
-## XR_004770827.1_96502054_66aa
+### XR_004770827.1_96502054_66aa
 ```{r message=FALSE, warning=FALSE}
 selected_transcript <- "XR_004770827.1_96502054_66aa"
 
@@ -468,5 +470,5 @@ chx_plot <- track_data %>%
 chx_plot$layers <-c(geom_bar(stat = "identity", position = "identity"),chx_plot$layers) 
 chx_plot + theme(legend.position = "none")
 
-ggsave(filename = paste(results_dir,"Figure_2F.png", sep=""), width = 6, height = 3, device = "png", dpi = 700)
+ggsave(filename = paste(results_dir,"Figure_3F.png", sep=""), width = 6, height = 3, device = "png", dpi = 700)
 ```

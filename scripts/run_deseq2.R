@@ -49,7 +49,7 @@ CriGri_PICRH_1_0_annotation <- read_delim(paste0(root_dir, "reference_genome/GCF
 )
 
 # load the mouse annotation - used to match gene names to complete LOC to symbol conversion
-mouse_feature_table <- read_delim(paste0(root_dir, "reference_genome/ _feature_table.txt"),
+mouse_feature_table <- read_delim(paste0(root_dir, "reference_genome/GCF_000001635.27_GRCm39_feature_table.txt"),
   "\t",
   escape_double = FALSE, trim_ws = TRUE
 )

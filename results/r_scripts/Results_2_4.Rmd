@@ -52,10 +52,28 @@ average_counts <- 20
 ## RNA-seq
 Volcano plot for RNA-seq
 ```{r}
-# volcano plot
-rnaseq_volcano_plot <- res_rnaseq %>%
+
+res_rnaseq_smorf <- res_rnaseq %>%
   as_tibble(rownames = "geneid") %>%
-  filter(!str_detect(geneid, "NR|XR")) %>%
+  filter(geneid %in% smorf_ids$`ORF-RATER name`) 
+
+res_rnaseq_canonical <- res_rnaseq %>%
+  as_tibble(rownames = "geneid") %>%
+  filter(!str_detect(geneid, "NR|XR")) 
+  
+ res_rnaseq <- bind_rows(res_rnaseq_smorf, res_rnaseq_canonical)
+  
+ res_rnaseq %>%
+   #filter(str_detect(geneid, "NR|XR")) %>%
+ 
+  dplyr::filter(abs(log2FoldChange) >= log2(fold_change_threshold) & padj < pval_threshold & baseMean >= 0)   %>%
+  summarise(all=n(),
+            up= sum(log2FoldChange >0),
+            down=sum(log2FoldChange <0))
+
+# volcano plot
+rnaseq_volcano_plot_data <- res_rnaseq %>%
+ #filter(!str_detect(geneid, "NR|XR")) %>%
   # remove any NCBI annotated non-coding RNAs from the results
   drop_na(padj) %>%
   mutate(diff_rnaseq = case_when(
@@ -63,64 +81,148 @@ rnaseq_volcano_plot <- res_rnaseq %>%
     log2FoldChange <= -log2(fold_change_threshold) & padj < pval_threshold & baseMean >= 0 ~ "Down",
     TRUE ~ "No change"
   )) %>%
-  ggplot(aes(x = log2FoldChange, y = -log10(padj), color = diff_rnaseq)) +
-  geom_point(size = 0.1) +
+  mutate(type = case_when(
+    geneid %in% smorf_ids$`ORF-RATER name` & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold) ~ "sORF" ,
+    !geneid %in% smorf_ids$`ORF-RATER name` & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold) ~ "Canonical" ,
+    TRUE ~ "Non DE"
+  )) %>%
+  mutate(protein_alpha = case_when(grepl("XR_|XM_", geneid) & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold)  ~ 1,
+                                   !grepl("XR_|XM_", geneid) & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold)  ~ 0.5,
+                                padj >=pval_threshold | abs(log2FoldChange) < log2(fold_change_threshold)  ~ 0.1)) %>%
+  mutate(protein_size = case_when(grepl("XR_|XM_", geneid) & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold)  ~ 1,
+                                   !grepl("XR_|XM_", geneid) & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold)  ~ 0.3,
+                                padj >=pval_threshold | abs(log2FoldChange) < log2(fold_change_threshold)  ~ 0.1)) %>%
+  arrange(type)
+
+rnaseq_volcano_plot <- rnaseq_volcano_plot_data %>%
+  ggplot(aes(x = log2FoldChange, y = -log10(padj), color = type)) +
+  geom_point( alpha=rnaseq_volcano_plot_data$protein_alpha, size=rnaseq_volcano_plot_data$protein_size) +
   geom_vline(xintercept = c(log2(fold_change_threshold), -log2(fold_change_threshold)), linetype = 11, size = 0.2) +
   geom_hline(yintercept = -log10(pval_threshold), linetype = 11, size = 0.2) +
-  labs(x = "Log"[2] ~ "mRNA FC (TS/NTS)", title = "RNASeq", color = "") +
+  labs(x = "Log"[2] ~ "mRNA FC (TS/NTS)", title = "RNA-seq", color = "") +
   theme_minimal() +
-  xlim(-6.5, 6.5) +
-  scale_color_manual(values = c("#D55E00", "#999999", "#56B4E9")) +
+  xlim(-3.5, 6.5) +
+   
+  scale_color_manual(values = c( "#CC6677","#999999","#035968" )) +
   theme_bw() +
   guides(color = guide_legend(override.aes = list(size = 3)))
-rnaseq_volcano_plot
+
 ```
 
 ## RiboSeq
 Volcano plot
 ```{r}
-# volcano plot
-riboseq_volcano_plot <- res_riboseq %>%
+
+res_riboseq_smorf <- res_riboseq %>%
   as_tibble(rownames = "geneid") %>%
-  filter(!str_detect(geneid, "NR|XR")) %>%
+  filter(geneid %in% smorf_ids$`ORF-RATER name`) 
+
+res_riboseq_canonical <- res_riboseq %>%
+  as_tibble(rownames = "geneid") %>%
+  filter(!str_detect(geneid, "NR|XR")) 
+  
+ res_riboseq <- bind_rows(res_riboseq_smorf, res_riboseq_canonical)
+  
+ res_riboseq %>%
+   filter(str_detect(geneid, "NR|XR")) %>%
+ 
+  dplyr::filter(abs(log2FoldChange) >= log2(fold_change_threshold) & padj < pval_threshold & baseMean >= 0)   %>%
+  summarise(all=n(),
+            up= sum(log2FoldChange >0),
+            down=sum(log2FoldChange <0))
+
+# volcano plot
+riboseq_volcano_plot_data <- res_riboseq %>%
+ #filter(!str_detect(geneid, "NR|XR")) %>%
+  # remove any NCBI annotated non-coding RNAs from the results
   drop_na(padj) %>%
-  mutate(diff_ribo = case_when(
-    log2FoldChange >= log2(fold_change_threshold) & padj < pval_threshold & baseMean > base_mean_threshold ~ "Up",
-    log2FoldChange <= -log2(fold_change_threshold) & padj < pval_threshold & baseMean > base_mean_threshold ~ "Down",
+  mutate(diff_rnaseq = case_when(
+    log2FoldChange >= log2(fold_change_threshold) & padj < pval_threshold & baseMean >= 0 ~ "Up",
+    log2FoldChange <= -log2(fold_change_threshold) & padj < pval_threshold & baseMean >= 0 ~ "Down",
     TRUE ~ "No change"
   )) %>%
-  ggplot(aes(x = log2FoldChange, y = -log10(padj), color = diff_ribo)) +
-  geom_point(size = 0.1) +
+  mutate(type = case_when(
+    geneid %in% smorf_ids$`ORF-RATER name` & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold) ~ "sORF" ,
+    !geneid %in% smorf_ids$`ORF-RATER name` & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold) ~ "Canonical" ,
+    TRUE ~ "Non DE"
+  )) %>%
+  mutate(protein_alpha = case_when(grepl("XR_|XM_", geneid) & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold)  ~ 1,
+                                   !grepl("XR_|XM_", geneid) & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold)  ~ 0.5,
+                                padj >=pval_threshold | abs(log2FoldChange) < log2(fold_change_threshold)  ~ 0.1)) %>%
+  mutate(protein_size = case_when(grepl("XR_|XM_", geneid) & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold)  ~ 1,
+                                   !grepl("XR_|XM_", geneid) & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold)  ~ 0.3,
+                                padj >=pval_threshold | abs(log2FoldChange) < log2(fold_change_threshold)  ~ 0.1)) %>%
+  arrange(type)
+
+riboseq_volcano_plot <- riboseq_volcano_plot_data %>%
+  ggplot(aes(x = log2FoldChange, y = -log10(padj), color = type)) +
+  geom_point( alpha=riboseq_volcano_plot_data$protein_alpha, size=riboseq_volcano_plot_data$protein_size) +
   geom_vline(xintercept = c(log2(fold_change_threshold), -log2(fold_change_threshold)), linetype = 11, size = 0.2) +
   geom_hline(yintercept = -log10(pval_threshold), linetype = 11, size = 0.2) +
-  labs(x = expression("Log"[2] ~ "RPF FC (TS/NTS)"), title = "Ribo-seq", color = "") +
+  labs(x = "Log"[2] ~ "RPF FC (TS/NTS)", title = "Ribo-seq", color = "") +
+  theme_minimal() +
+  xlim(-3.5, 8) +
+  scale_color_manual(values = c( "#CC6677","#999999","#035968" )) +
   theme_bw() +
-  xlim(-6.5, 6.5) +
-  scale_color_manual(values = c("#D55E00", "#999999", "#56B4E9")) +
   guides(color = guide_legend(override.aes = list(size = 3)))
-riboseq_volcano_plot
+
+range(res_riboseq$log2FoldChange)
 ```
 
 # Compare RNA-seq and Ribo-seq DE
 ```{r}
-RNASeq_up <- sig_res_rnaseq %>%
+RNASeq_up_canonical <- sig_res_rnaseq %>%
+   filter(!str_detect(Plastid_ID, "NR|XR")) %>%
   filter(log2FoldChange > 0) %>%
   dplyr::select(Plastid_ID)
 
-RiboSeq_up <- sig_res_riboseq %>%
+RNASeq_up_smorf <- sig_res_rnaseq %>%
+   filter(Plastid_ID %in% smorf_ids$`ORF-RATER name`) %>%
   filter(log2FoldChange > 0) %>%
   dplyr::select(Plastid_ID)
 
-RNASeq_down <- sig_res_rnaseq %>%
+
+RiboSeq_up_canonical <- sig_res_riboseq %>%
+  filter(!str_detect(Plastid_ID, "NR|XR")) %>%
+  filter(log2FoldChange > 0) %>%
+  dplyr::select(Plastid_ID)
+
+RiboSeq_up_smorf <- sig_res_riboseq %>%
+   filter(Plastid_ID %in% smorf_ids$`ORF-RATER name`) %>%
+  filter(log2FoldChange > 0) %>%
+  dplyr::select(Plastid_ID)
+
+RNASeq_up <- bind_rows(RNASeq_up_smorf, RNASeq_up_canonical)
+RiboSeq_up <- bind_rows(RiboSeq_up_smorf, RiboSeq_up_canonical)
+
+RNASeq_down_canonical <- sig_res_rnaseq %>%
+  filter(!str_detect(Plastid_ID, "NR|XR")) %>%
   filter(log2FoldChange < 0) %>%
   dplyr::select(Plastid_ID)
 
-RiboSeq_down <- sig_res_riboseq %>%
+RNASeq_down_smorf <- sig_res_rnaseq %>%
+   filter(Plastid_ID %in% smorf_ids$`ORF-RATER name`) %>%
   filter(log2FoldChange < 0) %>%
   dplyr::select(Plastid_ID)
 
-paste0(length(setdiff(RiboSeq_up$Plastid_ID, RNASeq_up$Plastid_ID)), " increase in both data types")
-paste0(length(setdiff(RiboSeq_down$Plastid_ID, RNASeq_down$Plastid_ID)), " decrease in both data types")
+RiboSeq_down_canonical <- sig_res_riboseq %>%
+  filter(!str_detect(Plastid_ID, "NR|XR")) %>%
+  filter(log2FoldChange < 0) %>%
+  dplyr::select(Plastid_ID)
+
+RiboSeq_down_smorf <- sig_res_riboseq %>%
+   filter(Plastid_ID %in% smorf_ids$`ORF-RATER name`) %>%
+  filter(log2FoldChange < 0) %>%
+  dplyr::select(Plastid_ID)
+
+RNASeq_down <- bind_rows(RNASeq_down_smorf, RNASeq_down_canonical)
+RiboSeq_down <- bind_rows(RiboSeq_down_smorf, RiboSeq_down_canonical)
+
+dim(RiboSeq_down_canonical)[1] + dim(RiboSeq_up_canonical)[1] 
+dim(RiboSeq_down_smorf)[1] + dim(RiboSeq_up_smorf)[1]
+
+paste0(length(intersect(RiboSeq_up$Plastid_ID, RNASeq_up$Plastid_ID)), " increase in both data types")
+paste0(length(intersect(RiboSeq_down$Plastid_ID, RNASeq_down$Plastid_ID)), " decrease in both data types")
 ```
 
 ## Venn diagram
@@ -142,7 +244,7 @@ de_comparison <- ggvenn(
 
 ## Figure S8
 ```{r fig.height=8}
-combined_volcano <- rnaseq_volcano_plot + riboseq_volcano_plot + plot_layout(guides = "collect") + guides(color = guide_legend(override.aes = list(size = 3)))
+combined_volcano <- rnaseq_volcano_plot + riboseq_volcano_plot + plot_layout(guides = "collect",) + guides(color = guide_legend(override.aes = list(size = 3)))
 
 volcano_venn <- combined_volcano / de_comparison + plot_layout(heights = unit(c(5, 1), c("cm", "null")))
 
@@ -157,28 +259,43 @@ ggsave(plot = volcano_venn, filename = paste(results_dir, "Figure_S8.png", sep =
 aggreement_changes <- c(intersect(RNASeq_up$Plastid_ID, RiboSeq_up$Plastid_ID), intersect(RNASeq_down$Plastid_ID, RiboSeq_down$Plastid_ID))
 
 changing_both <- sig_res_riboseq %>%
-  filter(Plastid_ID %in% aggreement_changes)
+  filter(Plastid_ID %in% aggreement_changes) %>%
+  filter(!str_detect(Plastid_ID, "NR|XR"))
 
-riboseq_cor_rnaseq_volcano_plot <- res_riboseq %>%
-  as_tibble(rownames = "geneid") %>%
-  filter(!str_detect(geneid, "NR|XR")) %>%
+riboseq_cor_rnaseq_volcano_plot_data <- res_riboseq %>%
+  #as_tibble(rownames = "geneid") %>%
+  #filter(!str_detect(geneid, "NR|XR")) %>%
   drop_na(padj) %>%
   mutate(diff_ribo = case_when(
     log2FoldChange >= log2(fold_change_threshold) & padj < pval_threshold & baseMean > base_mean_threshold & geneid %in% aggreement_changes ~ "Up",
     log2FoldChange <= -log2(fold_change_threshold) & padj < pval_threshold & baseMean > base_mean_threshold & geneid %in% aggreement_changes ~ "Down",
     TRUE ~ "No change"
   )) %>%
-  ggplot(aes(x = log2FoldChange, y = -log10(padj), color = diff_ribo)) +
-  geom_point(size = 0.4) +
+  mutate(type = case_when(
+    geneid %in% smorf_ids$`ORF-RATER name` & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold) ~ "sORF" ,
+    !geneid %in% smorf_ids$`ORF-RATER name` & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold) ~ "Canonical" ,
+    TRUE ~ "Non DE"
+  )) %>%
+  mutate(protein_alpha = case_when(grepl("XR_|XM_", geneid) & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold)  ~ 1,
+                                   !grepl("XR_|XM_", geneid) & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold)  ~ 0.5,
+                                padj >=pval_threshold | abs(log2FoldChange) < log2(fold_change_threshold)  ~ 0.1)) %>%
+  mutate(protein_size = case_when(grepl("XR_|XM_", geneid) & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold)  ~ 1,
+                                   !grepl("XR_|XM_", geneid) & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold)  ~ 0.3,
+                                padj >=pval_threshold | abs(log2FoldChange) < log2(fold_change_threshold)  ~ 0.1)) %>%
+  arrange(type)
+  
+ riboseq_cor_rnaseq_volcano_plot <- riboseq_cor_rnaseq_volcano_plot_data %>% 
+  ggplot(aes(x = log2FoldChange, y = -log10(padj), color = type)) +
+  geom_point(size = riboseq_cor_rnaseq_volcano_plot_data$protein_size, alpha=riboseq_cor_rnaseq_volcano_plot_data$protein_alpha) +
   labs(x = expression("Log"[2] ~ "RPF FC (TS/NTS)"), color = "") +
   theme_bw() +
   geom_vline(xintercept = c(log2(fold_change_threshold), -log2(fold_change_threshold)), linetype = 11, size = 0.2) +
   geom_hline(yintercept = -log10(pval_threshold), linetype = 11, size = 0.2) +
-  xlim(-6.5, 6.5) +
-  scale_color_manual(values = c("#D55E00", "#999999", "#56B4E9")) +
+  xlim(-3.5, 8) +
+  scale_color_manual(values = c("#CC6677","#999999","#035968")) +
   guides(color = guide_legend(override.aes = list(size = 3))) +
   theme(legend.position = "right")
-riboseq_cor_rnaseq_volcano_plot
+range(riboseq_cor_rnaseq_volcano_plot$log2FoldChange)
 ```
 
 # Translation Efficency
@@ -186,15 +303,23 @@ Here genes that are altered at the level of translation are identified. Only tho
 
 ## Diff TE scatter plot
 ```{r}
-res_rnaseq_tib <- res_rnaseq %>%
+res_te %>%
   as_tibble(rownames = "geneid") %>%
-  filter(!str_detect(geneid, "XR|NR")) %>%
+  #filter(!str_detect(geneid, "NR|XR")) %>%
+  dplyr::filter(abs(log2FoldChange) >= log2(fold_change_threshold) & padj < pval_threshold & baseMean >= 0) %>%
+  summarise(all=n(),
+            up= sum(log2FoldChange >0),
+            down=sum(log2FoldChange <0))
+
+res_rnaseq_tib <- res_rnaseq %>%
+  #as_tibble(rownames = "geneid") %>%
+  #filter(!str_detect(geneid, "XR|NR")) %>%
   dplyr::select(geneid, log2FoldChange, padj) %>%
   mutate("Plastid_ID" = geneid)
 
 res_riboseq_tib <- res_riboseq %>%
-  as_tibble(rownames = "geneid") %>%
-  filter(!str_detect(geneid, "XR|NR")) %>%
+  #as_tibble(rownames = "geneid") %>%
+  #filter(!str_detect(geneid, "XR|NR")) %>%
   dplyr::select(geneid, log2FoldChange, padj) %>%
   mutate("Plastid_ID" = geneid)
 
@@ -205,7 +330,7 @@ combined_data <- left_join(res_rnaseq_tib, res_riboseq_tib, by = "Plastid_ID", s
 combined_data <- left_join(combined_data, sig_res_te, by = "Plastid_ID")
 
 diff_plot_data <- combined_data %>%
-  filter(!str_detect(Plastid_ID, "XR|NR")) %>% # only annotated PCGs
+  #filter(!str_detect(Plastid_ID, "XR|NR")) %>% # only annotated PCGs
   mutate(
     sig_te = !is.na(log2FoldChange),
     rpf_direction = sign(log2FoldChange),
@@ -219,6 +344,9 @@ diff_plot_data <- combined_data %>%
       TRUE ~ "No TE change"
     )
   )
+
+diff_plot_data %>% filter(str_detect(Plastid_ID, "XR|NR"))
+  
 
 te_scatter_plot <- diff_plot_data %>%
   arrange(direction_color) %>%

@@ -156,6 +156,15 @@ rnaseq_volcano_plot <- res_rnaseq %>%
 
 ## RPF DE smORF
 ```{r}
+
+res_riboseq %>%
+  as_tibble(rownames = "geneid") %>%
+  filter(str_detect(geneid, "NR|XR")) %>%
+  dplyr::filter(abs(log2FoldChange) >= log2(fold_change_threshold) & padj < pval_threshold & baseMean >= 0) %>%
+  summarise(all=n(),
+            up= sum(log2FoldChange >0),
+            down=sum(log2FoldChange <0))
+
 sig_res_riboseq_smorf <- res_riboseq %>%
   as_tibble(rownames = "geneid") %>%
   filter(str_detect(geneid, "NR|XR")) %>%
@@ -296,7 +305,7 @@ boxplot_smorf <- bind_rows(
   ggplot(aes(x = seqtype, y = value, fill = condition)) +
   geom_boxplot(position = position_dodge2(0.75, preserve = "single")) +
   geom_point(size = 0.5, position = position_dodge(0.75, preserve = "total")) +
-  facet_wrap(~name, scales = "free_y", ncol = 4) +
+  facet_wrap(~name, scales = "free_y", ncol = 3) +
   theme_bw() +
   labs(x = "", y = expression("Log"[2] ~ "TE (TS/NTS)"), fill = "") +
   scale_fill_manual(values = c("#D55E00", "#56B4E9")) +
@@ -330,7 +339,7 @@ smorf_te_boxplots <- bind_rows(
 ) %>%
   mutate(condition = toupper(tcounts$condition[1:8])) %>%
   pivot_longer(cols = -condition) %>%
-  mutate(name = str_remove(name, "_1")) %>%
+  #mutate(name = str_remove(name, "_1")) %>%
   ggplot(aes(x = condition, y = value, fill = condition)) +
   geom_boxplot() +
   geom_point(size = 0.5) +

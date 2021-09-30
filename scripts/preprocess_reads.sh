@@ -115,6 +115,7 @@ while read -ra a ;
     $star_path/STAR \
     --outFilterType BySJout \
     --runThreadN 16 \
+    --seedSearchStartLmaxOverLread .5 \
     --outFilterMismatchNmax 2 \
     --genomeDir reference_genome/star_index_ncbi \
     --readFilesIn data/$seqtype/preproccessed_data/complete/${a[1]}.fastq \
@@ -149,6 +150,7 @@ for seqtype in riboseq_harr riboseq_nd riboseq_chx
     --outFilterType BySJout \
     --runThreadN 16 \
     --outFilterMismatchNmax 2 \
+    --seedSearchStartLmaxOverLread .5 \
     --genomeDir reference_genome/star_index_ncbi \
     --readFilesIn data/$seqtype/mapped/merged/$seqtype.fastq \
     --outFileNamePrefix data/$seqtype/mapped/merged/$seqtype \
@@ -184,6 +186,7 @@ while read -ra a ;
        --outSAMtype BAM SortedByCoordinate \
        --runThreadN 16 \
        --outFilterMismatchNmax 2 \
+       --seedSearchStartLmaxOverLread .5 \
        --genomeDir reference_genome/star_index_ncbi \
        --readFilesIn  data/rnaseq_se/preprocessed_data/complete/${a[0]} \
        --outFileNamePrefix data/rnaseq_se/mapped/individual/${a[1]} \
@@ -207,6 +210,7 @@ data/rnaseq_se/mapped/merged/rnaseq_se.fastq
 $star_path/STAR \
     --outFilterType BySJout \
     --runThreadN 16 \
+    --seedSearchStartLmaxOverLread .5 \
     --outFilterMismatchNmax 2 \
     --genomeDir reference_genome/star_index_ncbi \
     --readFilesIn data/rnaseq_se/mapped/merged/rnaseq_se.fastq \
