@@ -17,6 +17,15 @@ if (!dir.exists(results_dir)) {
 
 orftable <- read.csv(file = paste0(root_dir, "/orfrater_analysis/rate_regression.ncbi.csv"), header = T)
 
+orftable_filtered <- orftable %>%
+  filter(orfrating >= 0.5 & AAlen >= 5)
+
+print("removal of aa<5 & score<5")
+table(orftable_filtered$orftype)
+print("####")
+sum(table(orftable_filtered$orftype))
+print("####")
+
 # 1. filter by score and length
 # 2. Remove truncation, internal, LOOF types
 # 3. Modify ORF names
@@ -42,9 +51,11 @@ orftable_filtered <- orftable %>%
     orftype == "stop_overlap" ~ "Stop overlap",
     orftype == "extension" ~ "Extension"
   ))
-
-#table(orftable_filtered$orftype)
-
+print("removal of truc,internal, LOOF")
+table(orftable_filtered$orftype)
+print("####")
+sum(table(orftable_filtered$orftype))
+print("####")
 # Filter potential false positives
 non_truncates <- orftable_filtered %>% 
   filter(orftype != "Upstream") %>% 
