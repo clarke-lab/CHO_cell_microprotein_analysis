@@ -2,10 +2,11 @@
 
 The code contained in this repositority enable the reproduction of the results of
 
-Castro-Rivadeneyra *et. al* 
+Castro-Rivadeneyra *et. al* Found in translation: Microproteins are a new class of host cell impurity in mAb drug products
 
-The publication is freely availiable here:
+The publication is freely availiable here: xxxxxxx
 
+Abstract: Mass spectrometry (MS) has emerged as a powerful approach for the detection of Chinese hamster ovary (CHO) cell protein impurities in antibody drug products. The incomplete annotation of the Chinese hamster genome, however, limits the coverage of MS-based host cell protein (HCP) analysis. In this study, we performed ribosome footprint profiling (Ribo-seq) of translation initiation and elongation to refine the Chinese hamster genome annotation. Analysis of these data resulted in the identification of thousands of previously uncharacterised non-canonical proteoforms in CHO cells, such as N-terminally extended proteins and short open reading frames (sORFs) predicted to encode for microproteins. MS-based HCP analysis of adalimumab and trastuzumab with the extended protein sequence database, resulted in the detection of CHO cell microprotein impurities in mAb drug product for the first time. Further analysis revealed that the CHO cell microprotein population is altered over the course of cell culture and, in response to a change in cell culture temperature. The annotation of non-canonical Chinese hamster proteoforms permits a more comprehensive characterisation of HCPs in antibody drug products using MS.
 
 
 
