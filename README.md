@@ -1,4 +1,4 @@
-# CHO Cell Ribo-seq 
+# Found in translation: Microproteins are a new class of host cell impurity in mAb drug products  
 
 The code contained in this repositority enable the reproduction of the results of
 
