@@ -6,7 +6,6 @@ Castro-Rivadeneyra *et. al* 2022. **Found in translation: Microproteins are a ne
 
 The publication is freely availiable here: xxxxxxx&nbsp;
 
-
 **Abstract:**
 <p style='text-align: justify;'>
 Mass spectrometry (MS) has emerged as a powerful approach for the detection of Chinese hamster ovary (CHO) cell protein impurities in antibody drug products. The incomplete annotation of the Chinese hamster genome, however, limits the coverage of MS-based host cell protein (HCP) analysis.</p> &nbsp;
@@ -99,8 +98,8 @@ $star_path/STAR --runThreadN 16 \
 ### 4. RPF and read mapping  
 
 <p style='text-align: justify;'>
-This script preprocesses the raw sequencing data. For all data types the adapters are removed as well as low quality bases. For Ribo-seq data contaminating RNA species (rRNA, tRNA and snoRNA) are removed following mapping to individual indexes, 
-remaining reads are filtered based on length with only those within the expected RPF range (28-31nt) retained. Finally the reads from all replicate.  
+
+This script preprocesses the raw sequencing data. For all data types the adapters are removed as well as low quality bases. For Ribo-seq data contaminating RNA species (rRNA, tRNA and snoRNA) are removed following mapping to individual indexes, remaining reads are filtered based on length with only those within the expected RPF range (28-31nt) retained. Finally the reads from all replicate.  
 </p>
 
 ```bash
@@ -176,7 +175,7 @@ mkdir proteomics_db
 ### 1. Plastid reference  
 
 <p style='text-align: justify;'>
-Here a plastid reference is created to enable the determination of the RPKM of transcripts and gene-level counting. A mask is created to elminate the first 5 and last 15 codons of ORFs >100aa, for ORFs < 100aa the first and last codons are exlcuded from the counting process. 
+Here a plastid reference is created to enable the determination of the RPKM of transcripts and gene-level counting. A mask is created to elminate the first 5 and last 15 codons of ORFs >100aa, for ORFs < 100aa the first and last codons are exlcuded from the counting process.  
 </p>
 
 ```bash
@@ -187,7 +186,9 @@ mkdir plastid_reference
 ```
 
 ### 2. Transcript level quantiation
+
 The RPKM is calculated for each annotated transcript
+
 ```bash
 mkdir -p quantitation/transcript_cds_rpkm
 
@@ -206,7 +207,7 @@ mkdir quantitation/gene_cds_counts
 ./scripts/calculate_gene_cds_counts.sh
 ```
 
-## Differential Translation Analysis  
+### 4. Differential Translation Analysis  
 
 First we count the RPFs and RNA-seq reads mapping to CDS regions using Plastid
 
@@ -216,6 +217,7 @@ First we count the RPFs and RNA-seq reads mapping to CDS regions using Plastid
 ```
 
 Then DESeq2 is using to calculate differential expression from the Ribo-seq and RNA-seq reads separately before differential translation is carried out.
+
 ```bash
 # the mouse annotation is used to replace missing gene CGR gene symbols
 wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/635/GCF_000001635.27_GRCm39/GCF_000001635.27_GRCm39_feature_table.txt.gz \
@@ -227,7 +229,8 @@ gunzip reference_genome/GCF_000001635.27_GRCm39_feature_table.txt.gz
 Rscript ./scripts/run_deseq2.R
 ```
 
-### 1. Make alignment tracks
+### 5. Make alignment tracks  
+
 Here we make the required alignment tracks for figures from the genome and transcriptome BAMs using individual replicates and the merged data
 
 ```bash
@@ -236,7 +239,7 @@ Here we make the required alignment tracks for figures from the genome and trans
 
 ## Results
 
-The following R notebooks allow the reproduction of figures and tables in the manuscript 
+The following R notebooks allow the reproduction of figures and tables in the manuscript
 
 ### 2.1 Transcriptome wide analysis of CHO cell translation initiation and elongation using Ribo-seq
 
@@ -255,6 +258,7 @@ results/r_scripts/section_2_2.Rmd
 ### 2.3 The Chinese hamster genome harbours thousands of short open reading frames
 
 Analysis of the global effect of uORFs at the transcript level
+
 ```bash
 results/r_scripts/section_2_3.Rmd
 ```  
