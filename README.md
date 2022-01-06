@@ -6,30 +6,35 @@ Castro-Rivadeneyra *et. al* Found in translation: Microproteins are a new class 
 
 The publication is freely availiable here: xxxxxxx
 
-**Abstract:** Mass spectrometry (MS) has emerged as a powerful approach for the detection of Chinese hamster ovary (CHO) cell protein impurities in antibody drug products. The incomplete annotation of the Chinese hamster genome, however, limits the coverage of MS-based host cell protein (HCP) analysis. In this study, we performed ribosome footprint profiling (Ribo-seq) of translation initiation and elongation to refine the Chinese hamster genome annotation. Analysis of these data resulted in the identification of thousands of previously uncharacterised non-canonical proteoforms in CHO cells, such as N-terminally extended proteins and short open reading frames (sORFs) predicted to encode for microproteins. MS-based HCP analysis of adalimumab and trastuzumab with the extended protein sequence database, resulted in the detection of CHO cell microprotein impurities in mAb drug product for the first time. Further analysis revealed that the CHO cell microprotein population is altered over the course of cell culture and, in response to a change in cell culture temperature. The annotation of non-canonical Chinese hamster proteoforms permits a more comprehensive characterisation of HCPs in antibody drug products using MS.
-
-
+**Abstract:**S
+Mass spectrometry (MS) has emerged as a powerful approach for the detection of Chinese hamster ovary (CHO) cell protein impurities in antibody drug products. The incomplete annotation of the Chinese hamster genome, however, limits the coverage of MS-based host cell protein (HCP) analysis.  
+In this study, we performed ribosome footprint profiling (Ribo-seq) of translation initiation and elongation to refine the Chinese hamster genome annotation. Analysis of these data resulted in the identification of thousands of previously uncharacterised non-canonical proteoforms in CHO cells, such as N-terminally extended proteins and short open reading frames (sORFs) predicted to encode for microproteins. MS-based HCP analysis of adalimumab and trastuzumab with the extended protein sequence database, resulted in the detection of CHO cell microprotein impurities in mAb drug product for the first time. Further analysis revealed that the CHO cell microprotein population is altered over the course of cell culture and, in response to a change in cell culture temperature. The annotation of non-canonical Chinese hamster proteoforms permits a more comprehensive characterisation of HCPs in antibody drug products using MS.
 
 ## 1. Dependencies
-| Software | R packages | 
+
+To be added: viridis, ggpp, proDA, ggvenn
+
+| Software | R packages |
 | ------------- | --------------- |
-| [cutadapt 1.18](https://cutadapt.readthedocs.io/en/stable/)     | [tidyverse]() |
-| [STAR-2.7.8a](https://github.com/alexdobin/STAR) | [DESeq2]() | 
-| [trimmomatic-0.36](http://www.usadellab.org/cms/?page=trimmomatic) | [patchwork] |
-| [Plastid](https://plastid.readthedocs.io/en/latest/) | [writexl] |
-| [ORF-RATER](https://github.com/alexfields/ORF-RATER) | 
-| [Docker](https://www.docker.com/) |
-| [samtools](http://www.htslib.org/) | 
-| [Deeptools](https://deeptools.readthedocs.io/en/develop/) |
-| [agat](https://github.com/NBISweden/AGAT)
-| [Kent Utilities](https://hgdownload.soe.ucsc.edu/admin/exe/) |
+| [cutadapt 1.18](https://cutadapt.readthedocs.io/en/stable/)     | [tidyverse](https://tidyr.tidyverse.org) |
+| [STAR-2.7.8a](https://github.com/alexdobin/STAR) | [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) |
+| [trimmomatic-0.36](http://www.usadellab.org/cms/?page=trimmomatic) | [patchwork](https://patchwork.data-imaginist.com) |
+| [Plastid](https://plastid.readthedocs.io/en/latest/) | [writexl](https://github.com/ropensci/writexl) |
+| [ORF-RATER](https://github.com/alexfields/ORF-RATER) | [ggpp](https://cran.r-project.org/web/packages/ggpp/readme/README.html) |
+| [Docker](https://www.docker.com/) | [wiggleplotr](https://bioconductor.org/packages/release/bioc/html/wiggleplotr.html) |
+| [samtools](http://www.htslib.org/) | [GenomicFeatures](https://bioconductor.org/packages/release/bioc/html/GenomicFeatures.html) |
+| [Deeptools](https://deeptools.readthedocs.io/en/develop/) | [viridis](https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html) |
+| [agat](https://github.com/NBISweden/AGAT) | [ggpubr](https://rpkgs.datanovia.com/ggpubr/) |
+| [Kent Utilities](https://hgdownload.soe.ucsc.edu/admin/exe/) | [cowplot] (https://cran.r-project.org/web/packages/cowplot/vignettes/introduction.html) |
 
 <br/>  
 
-# Section 1: Analysis
+## Section 1: Analysis  
+
 
 Make a directory for the analysis and enter it
-```
+
+```bash
 mkdir ribosome_footprint_profiling
 cd ribosome_footprint_profiling
 ```
