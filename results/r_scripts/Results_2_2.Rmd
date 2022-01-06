@@ -1,0 +1,187 @@
+---
+title: "Section 2.2 Results"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+# Ribo-seq enables the characterisation of novel Chinese hamster proteoforms
+
+## Prepare for analysis
+### Load libraries & functions
+```{r message=FALSE, warning=FALSE, include=FALSE}
+package_list <- c(
+  "tidyverse", "gridExtra", "viridis", "ggforce", "ggpp","cowplot"
+)
+
+lapply(package_list, require, character.only = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+results_dir <- "../section2.2/"
+if (!dir.exists(results_dir)) {
+  dir.create(results_dir, recursive = TRUE)
+}
+```
+
+### Load the ORFs
+Output file created during execution of filter_ORFs.R
+```{r}
+load("../section2.2/results_2_2.RData")
+```
+
+## Proportion of start codons and ORF types
+```{r}
+sum(table(table_s3$`ORF type`))
+
+table_s3 %>%
+  filter(`ORF type` != "Annotated") %>%
+  summarise(length(`ORF-RATER name`))
+
+table_s3 %>%
+  filter(`ORF type` != "Annotated") %>%
+  group_by(`Start codon`) %>%
+  summarise(
+    count = n(),
+    percentage = (n() / nrow(.)) * 100
+  ) %>%
+  arrange(-percentage)
+
+table_s3 %>%
+  filter(`ORF type` != "Annotated") %>%
+  group_by(`ORF type`) %>%
+  summarise(
+    count = n(),
+    percentage = (n() / nrow(.)) * 100
+  ) %>%
+  arrange(-percentage)
+
+table(table_s3$`ORF type`, table_s3$`Start codon`)
+```
+
+# Figure 2 plots
+## Summary plot
+```{r message=FALSE, warning=FALSE}
+orftype_codon_data <- data.frame(table(table_s3$`ORF type`, table_s3$`Start codon`)) %>%
+  mutate(Var3 = gsub("T", "U", Var2)) %>%
+  group_by(Var3) %>%
+  mutate(count_name_occur = Freq) %>%
+  group_by(Var1) %>%
+  mutate(total = sum(Freq)) %>%
+  mutate(codons = factor(Var3, levels = c("UUG", "GUG", "CUG", "AUG")))
+
+summary_start <- table(table_s3$`ORF type`, table_s3$`Start codon`)
+colnames(summary_start) <- gsub("T", "U", colnames(summary_start))
+summary_start <- summary_start[order(rowSums(-summary_start)), ]
+
+sum_table <- tableGrob(summary_start, theme = ttheme_default(base_size = 12, padding = unit(c(1, 1), "mm")))
+
+orftype_codon_data %>%
+  ggplot(aes(x = reorder(Var1, count_name_occur), y = Freq, fill = codons)) +
+  geom_bar(stat = "identity") +
+  scale_fill_viridis(discrete = T, direction = -1) +
+  theme_minimal_vgrid() +
+  coord_flip() +
+  labs(y = "# Identified ORFs", x = "", fill = "Start codon") +
+  theme(legend.position = "top") +
+  annotation_custom(sum_table, xmin = 5, xmax = 1, ymin = 4000, ymax = 5500)
+
+ggsave(filename = paste(results_dir, "Figure_2A.png", sep = ""), dpi = 700, device = "png")
+```
+## Coverage track plots
+### Load bedgraph data
+```{r include=FALSE}
+harr_min_nd <- read_tsv("../../alignment_tracks/merged/harr-nd.bedgraph",
+  col_names = F
+) %>% mutate(ribotype = "harr-nd")
+
+chx_bedgraph <- read_tsv("../../alignment_tracks/merged/chx.p.site.transcriptome.bedgraph",
+  col_names = F
+) %>% mutate(ribotype = "chx")
+
+
+chx_full_bedgraph <- read_tsv("../../alignment_tracks/merged/chx.fullcov.transcriptome.bedgraph",
+  col_names = F
+) %>% mutate(ribotype = "chx_full")
+
+bedgraph_data <- bind_rows(harr_min_nd, chx_bedgraph, chx_full_bedgraph)
+
+range01 <- function(x) {
+  (x - min(x)) / (max(x) - min(x))
+}
+```
+### Aurka N-terminal Extension
+```{r}
+selected_transcript <- "XM_027423276.2"
+
+current_orf <- table_s3 %>%
+  filter(`Transcript ID` == selected_transcript) %>%
+  filter(`ORF type` == "Extension" | `ORF type` == "Annotated")
+current_orf
+
+harr_track_data <- bedgraph_data %>%
+  filter(X1 == selected_transcript) %>%
+  filter(ribotype == "harr-nd") %>%
+  filter(X2 <= max(current_orf$`Transcript stop position`) & X2 >= 0) %>%
+  mutate(corrected = ifelse(X4 < 0, 0, X4)) %>%
+  mutate(scale_bpm = range01(corrected))
+
+chx_p_scaled <- bedgraph_data %>%
+  filter(X1 == selected_transcript) %>%
+  filter(ribotype == "chx") %>%
+  filter(X2 <= max(current_orf$`Transcript stop position`) & X2 >= 0) %>%
+  mutate(scale_bpm = range01(X4))
+
+chx_full_scaled <- bedgraph_data %>%
+  filter(X1 == selected_transcript) %>%
+  filter(ribotype == "chx_full") %>%
+  filter(X2 <= max(current_orf$`Transcript stop position`) & X2 >= 0) %>%
+  mutate(scale_bpm = range01(X4))
+
+track_data <- bind_rows(harr_track_data, chx_p_scaled, chx_full_scaled)
+
+track_data <- track_data %>%
+  mutate(frame = "NA") %>%
+  mutate(frame = ifelse((X2 >= min(current_orf$`Transcript start position`) & X2 <= current_orf$`Transcript stop position`[2] & ribotype == "chx"), (X2 - current_orf$`Transcript start position`) %% 3, NA))
+
+harr_plot <- track_data %>%
+  filter(ribotype == "harr-nd") %>%
+  add_row(X1 = selected_transcript, X2 = 0, X3 = 1, X4 = 0, ribotype = "harr-nd", corrected = 0, scale_bpm = 0, .before = 1) %>%
+  ggplot(aes(x = X2, y = scale_bpm)) +
+  geom_bar(stat = "identity", position = "identity", alpha = 1, fill = "#404788FF") +
+  facet_zoom(xlim = c(min(current_orf$`Transcript start position`) - 10, max(current_orf$`Transcript start position`) + 10), zoom.size = 1, split = F) +
+  labs(
+    x = "Transcript coordinates (nts)",
+    y = "Ribo-seq (Scaled BPM)",
+    title = "",
+    subtitle = ""
+  ) +
+  theme_bw() +
+  theme(validate = FALSE) +
+  geom_text_npc(aes(npcx = 0.95, npcy = 0.95), label = "HARR-ND", size = 2)
+
+ggsave(filename = paste(results_dir, "Figure_2B_harr.png", sep = ""), width = 6, height = 4, device = "png", dpi = 700)
+
+chx_plot <- track_data %>%
+  filter(ribotype == "chx" | ribotype == "chx_full") %>%
+  ggplot(aes(x = X2, y = scale_bpm, fill = frame, alpha = ribotype)) +
+  geom_bar(stat = "identity", position = "identity") +
+  scale_fill_viridis() +
+  scale_alpha_discrete(range = c(1, 0.3)) +
+  facet_zoom(xlim = c(min(current_orf$`Transcript start position`) - 10, max(current_orf$`Transcript start position`) + 10), shrink = FALSE, zoom.size = 1) +
+  labs(
+    x = "Transcript coordinates (nts)",
+    y = "Ribo-seq (Scaled BPM)",
+    title = "",
+    subtitle = ""
+  ) +
+  theme_bw() +
+  theme(validate = FALSE, legend.position = "none") +
+  geom_text_npc(aes(npcx = 0.95, npcy = 0.95), label = "CHX", size = 2)
+
+ggsave(plot = chx_plot, filename = paste(results_dir, "Figure_2B_chx.png", sep = ""), width = 6, height = 4, device = "png", dpi = 700)
+
+chx_plot
+harr_plot
+```

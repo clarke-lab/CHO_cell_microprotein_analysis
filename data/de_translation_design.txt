@@ -1,0 +1,17 @@
+sample_name,condition,assay
+rnaseq_nts_r1,nts,rnaseq
+rnaseq_nts_r2,nts,rnaseq
+rnaseq_nts_r3,nts,rnaseq
+rnaseq_nts_r4,nts,rnaseq
+rnaseq_ts_r1,ts,rnaseq
+rnaseq_ts_r2,ts,rnaseq
+rnaseq_ts_r3,ts,rnaseq
+rnaseq_ts_r4,ts,rnaseq
+riboseq_nts_r1,nts,riboseq
+riboseq_nts_r2,nts,riboseq
+riboseq_nts_r3,nts,riboseq
+riboseq_nts_r4,nts,riboseq
+riboseq_ts_r1,ts,riboseq
+riboseq_ts_r2,ts,riboseq
+riboseq_ts_r3,ts,riboseq
+riboseq_ts_r4,ts,riboseq

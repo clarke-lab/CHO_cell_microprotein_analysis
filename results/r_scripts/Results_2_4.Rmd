@@ -1,0 +1,258 @@
+---
+title: "Section 2.4 Results"
+output:
+  html_document:
+    df_print: paged
+---
+
+# Detection of host cell microprotein contamination in adalimumab and trastuzamab drug products
+
+## Prepare for analysis
+### Load libraries & functions
+
+```{r include=FALSE}
+package_list <- c(
+"tidyverse","readxl","viridis","gridExtra","ggpmisc", "writexl", "cowplot"
+)
+
+lapply(package_list, require, character.only = TRUE)
+```
+
+### Create results directory
+```{r include=FALSE}
+results_dir <- "../section2.4/"
+if (!dir.exists(results_dir)) {
+  dir.create(results_dir, recursive = TRUE)
+}
+```
+
+### Import the ORFRATER results
+```{r eval=FALSE, include=FALSE}
+load("../section2.2/results_2_2.RData")
+```
+
+### Load the HCP MS data
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# PXD019668 Bevacizumab
+bev_dp <- read_excel("../../data/HCP MS identifications/PXD019668 Bevacizumab.xlsx") %>%
+  filter(!grepl("Confidence|High", Accession))
+
+# PXD019668 Nivolumab
+niv_dp <- read_excel("../../data/HCP MS identifications/PXD019668 Nivolumab.xlsx") %>%
+  filter(!grepl("Confidence|High", Accession))
+
+# PXD019668 Trastuzumab
+tras_dp <- read_excel("../../data/HCP MS identifications/PXD019668 Trastuzumab.xlsx") %>%
+  filter(!grepl("Confidence|High", Accession))
+
+# PXD019668 Adalimumab
+ada_dp_pride <- read_excel("../../data/HCP MS identifications/PXD019668 Adalimumab.xlsx") %>%
+  filter(!grepl("Confidence|High", Accession))
+
+# NIBRT Adalimumab
+ada_dp_nibrt <- read_excel("../../data/HCP MS identifications/NIBRT Adalimumab.xlsx") %>%
+  filter(!grepl("Confidence|High", Accession))
+```
+
+# Analysis
+## Filter identifications
+```{r}
+# PXD019668 Bevacizumab
+bev_dp_class <- bev_dp %>%
+  mutate(prot_class = case_when(
+    !grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) >= 100 & as.numeric(`# Unique Peptides`) > 1 ~ "Uniprot",
+    grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) >= 100 & as.numeric(`# Unique Peptides`) > 1 ~ "Proteoform",
+    grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) < 100 ~ "Micropeptide",
+    TRUE ~ "Not detected"
+  )) %>%
+  filter(prot_class != "Not detected")
+
+write_xlsx(bev_dp_class, path = paste0(results_dir,"Table_S4A.xlsx"))
+
+# PXD019668 Nivolumab
+niv_dp_class <- niv_dp %>%
+  mutate(prot_class = case_when(
+    !grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) >= 100 & as.numeric(`# Unique Peptides`) > 1 ~ "Uniprot",
+    grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) >= 100 & as.numeric(`# Unique Peptides`) > 1 ~ "Proteoform",
+    grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) < 100 ~ "Micropeptide",
+    TRUE ~ "Not detected"
+  )) %>%
+  filter(prot_class != "Not detected")
+
+write_xlsx(niv_dp_class, path = paste0(results_dir,"Table_S4B.xlsx"))
+
+# PXD019668 Trastuzumab
+tras_dp_class <- tras_dp %>%
+  mutate(prot_class = case_when(
+    !grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) >= 100 & as.numeric(`# Unique Peptides`) > 1 ~ "Uniprot",
+    grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) >= 100 & as.numeric(`# Unique Peptides`) > 1 ~ "Proteoform",
+    grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) < 100 ~ "Micropeptide",
+    TRUE ~ "Not detected"
+  )) %>%
+  filter(prot_class != "Not detected")
+
+write_xlsx(tras_dp_class, path = paste0(results_dir,"Table_S4C.xlsx"))
+
+# PXD019668 Adalimumab
+ada_dp_pride_class <- ada_dp_pride %>%
+  mutate(prot_class = case_when(
+    !grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) >= 100 & as.numeric(`# Unique Peptides`) > 1 ~ "Uniprot",
+    grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) >= 100 & as.numeric(`# Unique Peptides`) > 1 ~ "Proteoform",
+    grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) < 100 ~ "Micropeptide",
+    TRUE ~ "Not detected"
+  )) %>%
+  filter(prot_class != "Not detected")
+
+write_xlsx(ada_dp_pride_class, path = paste0(results_dir,"Table_S4E.xlsx"))
+
+# NIBRT Adalimumab
+ada_dp_nibrt_class <- ada_dp_nibrt %>%
+  mutate(prot_class = case_when(
+    !grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) >= 100 & as.numeric(`# Unique Peptides`) > 1 ~ "Uniprot",
+    grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) >= 100 & as.numeric(`# Unique Peptides`) > 1 ~ "Proteoform",
+    grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) < 100 ~ "Micropeptide",
+    TRUE ~ "Not detected"
+  )) %>%
+  filter(prot_class != "Not detected")
+write_xlsx(ada_dp_nibrt_class, path = paste0(results_dir,"Table_S4E.xlsx"))
+```
+
+## HCP identificaiton barplot
+```{r}
+hcp_bar_plot_data <- bind_rows(
+  data.frame(sample = "Traztuzumab PXD019668", table(tras_dp_class$prot_class)),
+  data.frame(sample = "Nivolumab PXD019668", table(niv_dp_class$prot_class)),
+  data.frame(sample = "Bevacizumab PXD019668", table(bev_dp_class$prot_class)),
+  data.frame(sample = "Adalimumab PXD019668", table(ada_dp_pride_class$prot_class)),
+  data.frame(sample = "Adalimumab NIBRT", table(ada_dp_nibrt_class$prot_class))
+)
+
+hcp_bar_plot <- hcp_bar_plot_data %>%
+  ggplot(aes(x = sample, fill = factor(Var1, levels = c("Micropeptide", "Proteoform", "Uniprot")), y = Freq)) +
+  geom_bar(stat = "identity") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1)) +
+  scale_fill_viridis(discrete = T, direction = -1) +
+  labs(x = "", y = "# proteins/proteoforms", fill = "") +
+  coord_flip()
+
+hcp_bar_plot
+ggsave(hcp_bar_plot, filename = paste0(results_dir,"Figure 4C.png"), device = "png", dpi = 700, width = 8, height = 4)
+```
+
+## Merge MS identifications with ORF-RATER
+```{r}
+# PXD019668 Trastuzumab
+tras_dp_beck_smorf <- table_s3 %>%
+  mutate(Accession = `ORF-RATER name`) %>%
+  left_join(tras_dp, by = "Accession") %>%
+  drop_na(Description) %>%
+  filter(`Length (AAs)` <= 100) %>%
+  mutate(Source = "PXD019668", mAb = "Trastuzumab") %>%
+  select(`ORF-RATER name`, mAb, Source, `ORF type`, `Associated Gene symbol`, `Start codon`, `Length (AAs)`, `Coverage [%]`, `# Peptides`)
+
+# PXD019668 Adalimumab
+ada_dp_pride_smorf <- table_s3 %>%
+  mutate(Accession = `ORF-RATER name`) %>%
+  left_join(ada_dp_pride, by = "Accession") %>%
+  drop_na(Description) %>%
+  filter(`Length (AAs)` <= 100) %>%
+  mutate(Source = "PXD019668", mAb = "Adalimumab") %>%
+  select(`ORF-RATER name`, mAb, Source, `ORF type`, `Associated Gene symbol`, `Start codon`, `Length (AAs)`, `Coverage [%]`, `# Peptides`)
+
+# NIBRT Adalimumab
+ada_dp_nibrt_smorf <- table_s3 %>%
+  mutate(Accession = `ORF-RATER name`) %>%
+  left_join(ada_dp_nibrt, by = "Accession") %>%
+  drop_na(Description) %>%
+  filter(`Length (AAs)` <= 100) %>%
+  mutate(Source = "NIBRT", mAb = "Adalimumab") %>%
+  select(`ORF-RATER name`, mAb, Source, `ORF type`, `Associated Gene symbol`, `Start codon`, `Length (AAs)`, `Coverage [%]`, `# Peptides`)
+```
+
+
+```{r}
+dp_smorf_table <- bind_rows(ada_dp_pride_smorf, ada_dp_nibrt_smorf, tras_dp_beck_smorf)
+
+dp_smorf_table <- dp_smorf_table %>%
+  rename(`Gene symbol` = `Associated Gene symbol`) %>%
+  select(-c(`Length (AAs)`))
+
+microprotein_dp_table <- tableGrob(dp_smorf_table, theme = ttheme_default(
+  base_size = 10, padding = unit(c(2, 2), "mm"),
+  core = list(
+    bg_params = list(fill = c("grey95", "grey90", "grey95", "grey90", "grey95", "#35968CFF", "grey95", "grey90", "grey95", "grey90", "grey95")),
+    fg_params = list(col = c("black", "black", "black", "black", "black", "white", "black", "black", "black", "black", "black"))
+  )
+))
+
+ggsave(microprotein_dp_table, filename = paste0(results_dir,"Figure 4D.png"), device = "png", dpi = 700, width = 20)
+```
+
+## Plot mass spectra 
+```{r}
+Adalimumab_peptide_1 <- read_delim("../../data/mass_spectra/XR_003481490.2_407599334_59 aa peptide 1.txt",
+  "\t",
+  escape_double = FALSE, trim_ws = TRUE,
+  skip = 2
+)
+
+Adalimumab_peptide_1_plot <- Adalimumab_peptide_1 %>%
+  mutate(int = `Intensity [counts]` / 10^6) %>%
+  ggplot(aes(x = `m/z`, ymax = int, ymin = 0)) +
+  geom_linerange(color = "#d55e00") +
+  theme_bw() +
+  labs(y = "Intensity [counts] (10^6)") +
+  geom_text_npc(aes(npcx = 0.05, npcy = 0.95), label = "Xcorr=3.84", size = 4)
+Adalimumab_peptide_1_plot
+
+Adalimumab_peptide_2 <- read_delim("../../data/mass_spectra/XR_003481490.2_407599334_59 aa peptide 2.txt",
+  "\t",
+  escape_double = FALSE, trim_ws = TRUE,
+  skip = 2
+)
+
+Adalimumab_peptide_2_plot <- Adalimumab_peptide_2 %>%
+  mutate(int = `Intensity [counts]` / 10^6) %>%
+  ggplot(aes(x = `m/z`, ymax = int, ymin = 0)) +
+  geom_linerange(color = "#0072b2") +
+  theme_bw() +
+  labs(y = "Intensity [counts] (10^6)") +
+  geom_text_npc(aes(npcx = 0.05, npcy = 0.95), label = "Xcorr=2.64", size = 4)
+Adalimumab_peptide_2_plot
+
+Adalimumab_peptide_3 <- read_delim("../../data/mass_spectra/XR_003481490.2_407599334_59 aa peptide 3.txt",
+  "\t",
+  escape_double = FALSE, trim_ws = TRUE,
+  skip = 2
+)
+
+Adalimumab_peptide_3_plot <- Adalimumab_peptide_3 %>%
+  mutate(int = `Intensity [counts]` / 10^6) %>%
+  ggplot(aes(x = `m/z`, ymax = int, ymin = 0)) +
+  geom_linerange(color = "#009e73") +
+  theme_bw() +
+  labs(y = "Intensity [counts] (10^6)") +
+  geom_text_npc(aes(npcx = 0.05, npcy = 0.95), label = "Xcorr=2.55", size = 4)
+Adalimumab_peptide_3_plot
+
+
+Adalimumab_peptide_4 <- read_delim("../../data/mass_spectra/XR_003481490.2_407599334_59 aa peptide 4.txt",
+  "\t",
+  escape_double = FALSE, trim_ws = TRUE,
+  skip = 2
+)
+
+Adalimumab_peptide_4_plot <- Adalimumab_peptide_4 %>%
+  mutate(int = `Intensity [counts]` / 10^6) %>%
+  ggplot(aes(x = `m/z`, ymax = int, ymin = 0)) +
+  geom_linerange(color = "#cc79a7") +
+  theme_bw() +
+  labs(y = "Intensity [counts] (10^6)") +
+  geom_text_npc(aes(npcx = 0.05, npcy = 0.95), label = "Xcorr=2.34", size = 4)
+Adalimumab_peptide_4_plot
+
+spectra <- plot_grid(Adalimumab_peptide_1_plot, Adalimumab_peptide_2_plot, Adalimumab_peptide_3_plot, Adalimumab_peptide_4_plot, scale = 0.9, nrow = 2, ncol = 2)
+spectra 
+ggsave(plot = spectra, filename = paste0(results_dir,"Figure 4F.png", sep = ""), dpi = 700, device = "png", width = 15, height =10)
+```
