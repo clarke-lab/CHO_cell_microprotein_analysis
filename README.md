@@ -30,15 +30,15 @@ To be added: viridis, ggpp, proDA, ggvenn
 |  | [ggForce](https://ggforce.data-imaginist.com) |
 |  | [BioStrings](https://bioconductor.org/packages/release/bioc/html/Biostrings.html) |
 |  | [readxl](https://readxl.tidyverse.org) |
-|  | [ggpmisc]](https://cran.r-project.org/web/packages/ggpmisc/index.html) |
-|  | [WebGestaltR]](https://cran.r-project.org/web/packages/WebGestaltR/index.html) |
-|  | [heatmaply]](https://cran.r-project.org/web/packages/heatmaply/index.html) |
-|  | [ggvenn]](https://github.com/yanlinlin82/ggvenn) |
-|  | [ggrepel]](https://cran.r-project.org/web/packages/ggrepel/vignettes/ggrepel.html) |
-|  | [proDA]](https://www.bioconductor.org/packages/release/bioc/html/proDA.html) |
-|  | [scales]](https://scales.r-lib.org) |
-|  | [pheatmap]](https://cran.r-project.org/web/packages/pheatmap/index.html) |
-|  | [fuzzyjoin]](https://cran.r-project.org/web/packages/fuzzyjoin/index.html) |
+|  | [ggpmisc](https://cran.r-project.org/web/packages/ggpmisc/index.html) |
+|  | [WebGestaltR](https://cran.r-project.org/web/packages/WebGestaltR/index.html) |
+|  | [heatmaply](https://cran.r-project.org/web/packages/heatmaply/index.html) |
+|  | [ggvenn](https://github.com/yanlinlin82/ggvenn) |
+|  | [ggrepel](https://cran.r-project.org/web/packages/ggrepel/vignettes/ggrepel.html) |
+|  | [proDA](https://www.bioconductor.org/packages/release/bioc/html/proDA.html) |
+|  | [scales](https://scales.r-lib.org) |
+|  | [pheatmap](https://cran.r-project.org/web/packages/pheatmap/index.html) |
+|  | [fuzzyjoin](https://cran.r-project.org/web/packages/fuzzyjoin/index.html) |
 
 <br/>  
 
