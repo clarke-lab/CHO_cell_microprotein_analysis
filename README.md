@@ -14,9 +14,9 @@ In this study, we performed ribosome footprint profiling (Ribo-seq) of translati
 
 To be added: viridis, ggpp, proDA, ggvenn
 
-| Software | R packages |
-| ------------- | --------------- |
-| [cutadapt 1.18](https://cutadapt.readthedocs.io/en/stable/)     | [tidyverse](https://tidyr.tidyverse.org) |
+| Software | R packages | |
+| ------------- | --------------- | --------------- |
+| [cutadapt 1.18](https://cutadapt.readthedocs.io/en/stable/)     | [tidyverse](https://tidyr.tidyverse.org) | [gridExtra](https://cran.r-project.org/web/packages/gridExtra/index.html) |
 | [STAR-2.7.8a](https://github.com/alexdobin/STAR) | [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) |
 | [trimmomatic-0.36](http://www.usadellab.org/cms/?page=trimmomatic) | [patchwork](https://patchwork.data-imaginist.com) |
 | [Plastid](https://plastid.readthedocs.io/en/latest/) | [writexl](https://github.com/ropensci/writexl) |
