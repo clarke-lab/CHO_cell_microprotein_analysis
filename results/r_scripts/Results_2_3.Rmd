@@ -33,7 +33,7 @@ load("../section2.2/results_2_2.RData")
 
 ###  ORF length plot
 ```{r}
-source(file = "facetzoom2.R")
+source(file = "../../scripts/facetzoom2.R")
 safe_colorblind_palette <- c(
   "#88CCEE", "#CC6677", "#888888", "#117733", "#332288", "#035968",
   "#AA4499", "#999933", "#882255", "#661100", "#6699CC", "#888888"
