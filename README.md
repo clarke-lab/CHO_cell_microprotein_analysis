@@ -6,7 +6,7 @@ Castro-Rivadeneyra *et. al* Found in translation: Microproteins are a new class 
 
 The publication is freely availiable here: xxxxxxx
 
-**Abstract:**S
+**Abstract:**
 Mass spectrometry (MS) has emerged as a powerful approach for the detection of Chinese hamster ovary (CHO) cell protein impurities in antibody drug products. The incomplete annotation of the Chinese hamster genome, however, limits the coverage of MS-based host cell protein (HCP) analysis.  
 In this study, we performed ribosome footprint profiling (Ribo-seq) of translation initiation and elongation to refine the Chinese hamster genome annotation. Analysis of these data resulted in the identification of thousands of previously uncharacterised non-canonical proteoforms in CHO cells, such as N-terminally extended proteins and short open reading frames (sORFs) predicted to encode for microproteins. MS-based HCP analysis of adalimumab and trastuzumab with the extended protein sequence database, resulted in the detection of CHO cell microprotein impurities in mAb drug product for the first time. Further analysis revealed that the CHO cell microprotein population is altered over the course of cell culture and, in response to a change in cell culture temperature. The annotation of non-canonical Chinese hamster proteoforms permits a more comprehensive characterisation of HCPs in antibody drug products using MS.
 
@@ -25,7 +25,20 @@ To be added: viridis, ggpp, proDA, ggvenn
 | [samtools](http://www.htslib.org/) | [GenomicFeatures](https://bioconductor.org/packages/release/bioc/html/GenomicFeatures.html) |
 | [Deeptools](https://deeptools.readthedocs.io/en/develop/) | [viridis](https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html) |
 | [agat](https://github.com/NBISweden/AGAT) | [ggpubr](https://rpkgs.datanovia.com/ggpubr/) |
-| [Kent Utilities](https://hgdownload.soe.ucsc.edu/admin/exe/) | [cowplot] (https://cran.r-project.org/web/packages/cowplot/vignettes/introduction.html) |
+| [Kent Utilities](https://hgdownload.soe.ucsc.edu/admin/exe/) | [cowplot](https://cran.r-project.org/web/packages/cowplot/vignettes/introduction.html) |
+|  | [gridExtra](https://cran.r-project.org/web/packages/gridExtra/index.html) |
+|  | [ggForce](https://ggforce.data-imaginist.com) |
+|  | [BioStrings](https://bioconductor.org/packages/release/bioc/html/Biostrings.html) |
+|  | [readxl](https://readxl.tidyverse.org) |
+|  | [ggpmisc]](https://cran.r-project.org/web/packages/ggpmisc/index.html) |
+|  | [WebGestaltR]](https://cran.r-project.org/web/packages/WebGestaltR/index.html) |
+|  | [heatmaply]](https://cran.r-project.org/web/packages/heatmaply/index.html) |
+|  | [ggvenn]](https://github.com/yanlinlin82/ggvenn) |
+|  | [ggrepel]](https://cran.r-project.org/web/packages/ggrepel/vignettes/ggrepel.html) |
+|  | [proDA]](https://www.bioconductor.org/packages/release/bioc/html/proDA.html) |
+|  | [scales]](https://scales.r-lib.org) |
+|  | [pheatmap]](https://cran.r-project.org/web/packages/pheatmap/index.html) |
+|  | [fuzzyjoin]](https://cran.r-project.org/web/packages/fuzzyjoin/index.html) |
 
 <br/>  
 
