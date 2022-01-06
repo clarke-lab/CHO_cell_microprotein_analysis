@@ -5,21 +5,21 @@ output:
     df_print: paged
 ---
 
-# Introduction
+# Transcriptome wide analysis of CHO cell translation initiation and elongation using Ribo-seq
 
-This note book generates the figures for section 2.1 of the manuscript. 
-
+## Prepare for analysis
 ### Load libraries & functions
-
 ```{r include=FALSE}
 package_list <- c(
-  "ShortRead", "tidyverse", "ggsci", "ggpubr",
-  "cowplot", "patchwork", "readr", "writexl", "viridis", "patchwork"
+  "tidyverse","writexl","ggpubr","viridis"
 )
 
 lapply(package_list, require, character.only = TRUE)
+```
 
-results_dir <- "/mnt/HDD2/colin/ribosome_footprint_profiling/results/section2.1/"
+### Create results directory
+```{r include=FALSE}
+results_dir <- "../section2.1/"
 if (!dir.exists(results_dir)) {
   dir.create(results_dir, recursive = TRUE)
 }
@@ -27,7 +27,7 @@ if (!dir.exists(results_dir)) {
 
 # Impact of TS on cell density
 ```{r}
-cell_density_data <- read_delim("/mnt/HDD2/colin/ribosome_footprint_profiling/data/cell_density_data.txt",
+cell_density_data <- read_delim("../../data/cell_density_data.txt",
   "\t",
   escape_double = FALSE, trim_ws = TRUE
 )
@@ -74,7 +74,7 @@ cell_density_plot <- ggboxplot(cell_density_data, x = "condition", y = "cell_den
   theme(legend.position = "none") +
   scale_y_continuous(labels = function(x) format(x, scientific = TRUE)) +
   scale_fill_manual(values = c("#D55E00", "#56B4E9"))
-ggsave(plot = cell_density_plot, filename = paste(results_dir, "Figure_S1.png", sep = ""), width = 6, height = 4, device = "png", dpi = 700)
+ggsave(plot = cell_density_plot, filename = paste(results_dir, "Figure S1.png", sep = ""), width = 6, height = 4, device = "png", dpi = 700)
 cell_density_plot
 ```
 
@@ -87,7 +87,7 @@ samples <- c(
   "ts_r1", "ts_r2", "ts_r3", "ts_r4"
 )
 
-count_path <- "/mnt/HDD2/colin/ribosome_footprint_profiling/results/read_counts/"
+count_path <- "../read_counts/"
 
 positions <- c(
   "Cutadapt", "rRNA", "snoRNA", "tRNA", "<28nt or >32nt", "Retained"
@@ -310,7 +310,7 @@ bind_rows(cycloheximide, harringtonine, nd) %>%
   facet_wrap(~ribotype, nrow = 3) +
   scale_fill_viridis(discrete = T)
 
-ggsave(filename = paste(results_dir, "Figure_S2.png", sep = ""), width = 7, height = 8, device = "png", dpi = 700)
+ggsave(filename = paste(results_dir, "Figure S2.png", sep = ""), width = 7, height = 8, device = "png", dpi = 700)
 ```
 ### Summary of reads per dataset
 ```{r}
@@ -393,8 +393,10 @@ write_xlsx(list(Cycloheximide = cycloheximide, Harrintonine = harringtonine, `No
 length_distribution_files <- fs::dir_ls("../read_length_distribution/", 
                         regexp = "\\.txt$",)
 
+
+
 length_distirbution_data <- length_distribution_files %>%
-  map_dfr(read_delim, " ", escape_double=FALSE,trim_ws=TRUE, .id = "source", col_names = FALSE) %>%
+  map_dfr(read_table2, .id = "source", col_names = FALSE) %>%
   mutate(ribotype=case_when(
     str_detect(source,"riboseq_chx") ~ "riboseq_chx",
     str_detect(source,"riboseq_harr") ~ "riboseq_harr",
@@ -436,7 +438,7 @@ read_lengths_hist_plot <- length_distirbution_data %>%
   scale_fill_viridis(discrete = T, direction = -1)
 
 read_lengths_hist_plot
-ggsave(plot = read_lengths_hist_plot, filename = paste(results_dir, "Figure_1D.png", sep = ""), width = 5, height = 5, device = "png", dpi = 700)
+ggsave(plot = read_lengths_hist_plot, filename = paste(results_dir, "Figure 1D.png", sep = ""), width = 5, height = 5, device = "png", dpi = 700)
 ```
 ## Phasing
 ```{r include=FALSE}
@@ -506,7 +508,7 @@ phasing_bar_plot <- bind_rows(riboseq_chx_phasing, riboseq_harr_phasing, riboseq
 
 phasing_bar_plot
 
-ggsave(plot = phasing_bar_plot, filename = paste(results_dir, "Figure_1E.png", sep = ""), width = 5, height = 5, device = "png", dpi = 700)
+ggsave(plot = phasing_bar_plot, filename = paste(results_dir, "Figure 1E.png", sep = ""), width = 5, height = 5, device = "png", dpi = 700)
 ```
 ## Enrichment of RPFs in the harringtonine data at annotated TIS
 Demonstration that harringtonine has a higher occupancy for annotation TIS in comparison to CHX and No-drug
@@ -553,12 +555,9 @@ start_codon_plot <- metagene %>%
   theme_bw() +
   theme(legend.position = "top") +
   scale_color_viridis(discrete = T) +
-  # scale_color_manual(values=safe_colorblind_palette,
-  #                     limits = c("chx", "harr", "nd"),
-  #   labels = c("Cycloheximide", "Harringtonine", "No drug")) +
   scale_alpha_manual(values = c(0.6, 1, 0.6))
 start_codon_plot
-ggsave(filename = paste(results_dir, "Figure_1F.png", sep = ""), width = 6, height = 4, device = "png", dpi = 700)
+ggsave(filename = paste(results_dir, "Figure 1F.png", sep = ""), width = 6, height = 4, device = "png", dpi = 700)
 ```
 
 # Knit to R script

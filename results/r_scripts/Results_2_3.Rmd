@@ -1,932 +1,363 @@
 ---
-title: "Results 2.3"
-output: html_notebook
+title: "Section 2.3 Results"
+output:
+  html_document:
+    df_print: paged
 ---
-# Prepare for analysis
-```{r message=FALSE, include=FALSE}
+
+# The Chinese hamster genome harbours thousands of short open reading frames
+
+## Prepare for analysis
+### Load libraries & functions
+```{r include=FALSE}
 package_list <- c(
-  "tidyverse", "readr", "patchwork", "viridis", "ggpmisc","grid", "gridExtra","ggpubr"
+  "tidyverse", "ggpubr", "ggpp", "Biostrings", "viridis"
 )
 
-lapply(package_list, require, character.only = TRUE) 
+lapply(package_list, require, character.only = TRUE)
+```
 
-root_dir <-c("/mnt/HDD2/colin/ribosome_footprint_profiling/")
-
-results_dir <- "/mnt/HDD2/colin/ribosome_footprint_profiling/results/section2.3/"
+### Create results directory
+```{r}
+results_dir <- "../section2.3/"
 if (!dir.exists(results_dir)) {
-  dir.create(results_dir,recursive = TRUE)
+  dir.create(results_dir, recursive = TRUE)
 }
 ```
 
-# Import the ORFRATER results
+
+### Import the ORFRATER results
 ```{r}
-load("/mnt/HDD2/colin/ribosome_footprint_profiling/results/section2.2/results_2_2.RData")
+load("../section2.2/results_2_2.RData")
 ```
 
-# Upstream ORF characerisation
-## uORFs per transcript
+###  ORF length plot
 ```{r}
-# separate uORFs and determine the number per transcript
-uorfs <- table_s3 %>%
+source(file = "facetzoom2.R")
+safe_colorblind_palette <- c(
+  "#88CCEE", "#CC6677", "#888888", "#117733", "#332288", "#035968",
+  "#AA4499", "#999933", "#882255", "#661100", "#6699CC", "#888888"
+)
+
+orf_length_plot <- table_s3 %>%
+  mutate(`ORF type` = fct_relevel(`ORF type`,
+    levels = "Extension", "Annotated", "Isoform",
+    "Stop overlap", "Start overlap", "New", "Downstream", "Upstream"
+  )) %>%
+  ggplot(aes(y = `Length (AAs)`, x = `ORF type`, fill = `ORF type`)) +
+  geom_boxplot(position = "dodge", size = 0.2, outlier.size = 0.5) +
+  geom_jitter(size = 0.1, alpha = 0.1) +
+  theme_bw() +
+  scale_fill_manual(values = safe_colorblind_palette) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  facet_zoom2(ylim = c(0, 100)) +
+  labs(x = "")
+
+orf_length_plot
+ggsave(plot = orf_length_plot, filename = paste(results_dir, "Figure 3A.png", sep = ""), width = 6, height = 4, device = "png", dpi = 700)
+```
+
+
+## Length distribution plots
+```{r}
+uorf_length_plot <- table_s3 %>%
   filter(`ORF type` == "Upstream") %>%
-  group_by(`Transcript ID`) %>%
-  mutate(num_uORFs=n()) %>%
-  ungroup()
+  ggplot(aes(x = sort(`Length (AAs)`))) +
+  geom_histogram(bins = 50, fill = "#999933") +
+  labs(y = "# uORFs", x = "uORF Length (aa)") +
+  geom_text_npc(aes(npcx = 0.9, npcy = 0.9, label = paste0("Mean length:\n", round(mean(`Length (AAs)`)), " aa")), size = 3) +
+  theme_bw()
 
-# plot the distribution of uORFs per_transcript
-uorf_per_transcript_plot <- uorfs %>%
-  dplyr::select(`Transcript ID`, num_uORFs) %>%
-  ggplot(aes(x=num_uORFs)) +
-  geom_bar(stat="count",fill="#999933") +
-  scale_x_discrete(limits=as.character(c(1:max(uorfs$num_uORFs)))) +
+ouorf_length_plot <- table_s3 %>%
+  filter(`ORF type` == "Start overlap") %>%
+  ggplot(aes(x = sort(`Length (AAs)`))) +
+  geom_histogram(bins = 50, fill = "#332288") +
+  labs(y = "# ouORFs", x = "ouORF Length (aa)") +
   theme_bw() +
-  labs(x="uORFs per transcript", y="# transcripts") +
-  geom_text(stat="count",aes(label=..count..), vjust=-0.1, color="black", size=3) 
-uorf_per_transcript_plot
+  geom_text_npc(aes(npcx = 0.9, npcy = 0.9, label = paste0("Mean length:\n", round(mean(`Length (AAs)`)), " aa")), size = 3)
 
-#ggsave(plot=uorf_per_transcript_plot, filename= paste(results_dir,"Figure_4A.png", sep=""), width = 3, height = 3, device='png', dpi=700)
+new_orf_length_plot <- table_s3 %>%
+  filter(`ORF type` == "New") %>%
+  ggplot(aes(x = sort(`Length (AAs)`))) +
+  geom_histogram(bins = 50, fill = "#35968CFF") +
+  labs(y = "# New ORFs", x = "ORF Length (aa)") +
+  geom_text_npc(aes(npcx = 0.9, npcy = 0.9, label = paste0("Mean length:\n", round(mean(`Length (AAs)`)), " aa")), size = 3) +
+  theme_bw()
+
+figure_s3 <- ggarrange(uorf_length_plot,
+  ggplot() +
+    theme_void(),
+  ouorf_length_plot, ggplot() +
+    theme_void(),
+  new_orf_length_plot,
+  ncol = 5, widths = c(1, 0.05, 1, 0.05, 1)
+)
+
+figure_s3
+ggsave(plot = figure_s3, filename = paste(results_dir, "Figure S3.png", sep = ""), dpi = 700, device = "png", width = 9, height = 3)
 ```
 
-## ouORFs per transcript
+### sORF proportion
 ```{r}
-# separate overlapping uORFs and determine the number per transcript
-  ouorfs <- table_s3 %>%
-    filter(`ORF type` == "Start overlap") %>%
-    group_by(`Transcript ID`) %>%
-    mutate(num_ouORFs=n()) %>%
-    ungroup()
-  
-  # plot the distribution of uORFs per_transcript
-  ouorf_per_transcript_plot <- ouorfs %>%
-    dplyr::select(`Transcript ID`, num_ouORFs) %>%
-    ggplot(aes(x=num_ouORFs)) +
-    geom_bar(stat="count",fill="#332288") + 
-    scale_x_discrete(limits=as.character(c(1:max(ouorfs$num_ouORFs)))) +
-    geom_text(stat="count",aes(label=..count..), vjust=-0.1, color="black", size=3) +
-    #scale_x_discrete(limits=c(1:2)) +
-    theme_bw() +
-    labs(x="ouORFs per transcript", y="# transcripts") 
-    
-  ouorf_per_transcript_plot
-  
-  #ggsave(plot = ouorf_per_transcript_plot, filename= paste(results_dir,"Figure_4D.png", sep=""), width = 3, height = 3, device='png', dpi=700)
-```
-# Correlation uORF and ouORFs with TE
-## Import the RPKM values
-The counts are transcipt level we used the cds_rpkm value
-```{r message=FALSE}
-count_files <- fs::dir_ls("/mnt/HDD2/colin/ribosome_footprint_profiling/quantitation/transcript_cds_rpkm/", 
-                        regexp = "\\.txt$")
+all_short_orfs <- table_s3 %>%
+  filter(`Length (AAs)` < 100)
 
-rpkm_data <- count_files %>%
-  map_dfr(read_delim, "\t", skip=18, escape_double=FALSE,trim_ws=TRUE, .id = "source") %>%
-  mutate(source=str_replace(source,"/mnt/HDD2/colin/ribosome_footprint_profiling/quantitation/transcript_cds_rpkm/",""))
-
-riboseq_rpkm <- rpkm_data %>%
-  filter(str_detect(source, "riboseq")) %>%
-  replace(is.na(.),0) %>%
-  pivot_wider(id_cols = region, names_from=source, values_from=cds_rpkm) %>%
-  group_by(region) %>%
-  rowwise() %>% 
-   mutate(
-         av_all_riboseq_rpkm=mean(c_across(riboseq_nts_r1.txt:riboseq_ts_r4.txt))
-         ) 
-
-  rnaseq_rpkm <- rpkm_data %>%
-  filter(str_detect(source, "rnaseq")) %>%
-  replace(is.na(.),0) %>%
-  pivot_wider(id_cols = region, names_from=source, values_from=cds_rpkm) %>% 
-  group_by(region) %>%
-  rowwise() %>% 
-  mutate(
-         av_all_rnaseq_rpkm=mean(c_across(rnaseq_nts_r1.txt:rnaseq_ts_r4.txt))
-         )
-```
-
-### Calculate translation efficency
-Only for coding trancripts
-```{r}
-te_data <- left_join(riboseq_rpkm, rnaseq_rpkm,by="region") %>%
-  filter(av_all_rnaseq_rpkm > 0.5) %>%
-  filter(str_detect(region, "NM|XM")) %>%
-  mutate(nts_1_te=riboseq_nts_r1.txt/rnaseq_nts_r1.txt,
-         nts_2_te=riboseq_nts_r2.txt/rnaseq_nts_r2.txt,
-         nts_3_te=riboseq_nts_r3.txt/rnaseq_nts_r3.txt,
-         nts_4_te=riboseq_nts_r4.txt/rnaseq_nts_r4.txt,
-         ts_1_te=riboseq_ts_r1.txt/rnaseq_ts_r1.txt,
-         ts_2_te=riboseq_ts_r2.txt/rnaseq_ts_r2.txt,
-         ts_3_te=riboseq_ts_r3.txt/rnaseq_ts_r3.txt,
-         ts_4_te=riboseq_ts_r4.txt/rnaseq_ts_r4.txt
-         ) %>%
-  mutate(tid=sub("^([^_]*_[^_]*).*", "\\1", region)) %>%
-  rowwise() %>% 
-  mutate(av_nts=mean(c_across(nts_1_te:nts_4_te), na.rm=T),
-         av_ts=mean(c_across(ts_1_te:ts_4_te)),
-         av_all=mean(c_across(nts_1_te:ts_4_te)))  %>%
-  dplyr::select(tid,av_nts,av_ts,av_all) %>%
-  group_by(tid) %>%
-  summarise(av_nts=mean(av_nts),
-            av_ts=mean(av_ts),
-            av_all=mean(av_all))
-
-# create a RNA dataset for comparison to TE 
-rna_data <- rnaseq_rpkm %>%
-  filter(av_all_rnaseq_rpkm > 0.5) %>%
-  filter(str_detect(region, "NM|XM")) %>%
-  mutate(tid=sub("^([^_]*_[^_]*).*", "\\1", region)) %>%
-  rowwise() %>% 
-  mutate(av_nts=mean(c_across(rnaseq_nts_r1.txt:rnaseq_nts_r4.txt), na.rm=T),
-         av_ts=mean(c_across(rnaseq_ts_r1.txt:rnaseq_ts_r4.txt)),
-         av_all=mean(c_across(rnaseq_nts_r1.txt:rnaseq_ts_r4.txt))) %>%
-  group_by(tid) %>%
-  summarise(av_nts=mean(av_nts),
-            av_ts=mean(av_ts),
-            av_all=mean(av_all))
-```
-
-### Define the control transcripts
-Select the protein coding transcripts identified by ORFRATER that have neither a uORF or ouORF and are expressed (RPKM > 0.5)
-```{r}
-annotated <- table_s3 %>%
-  filter(`ORF type` == "Annotated")
-
-uorfs_tid <- uorfs %>% mutate("tid"=`Transcript ID`)
-uORF_te_data <- left_join(te_data,uorfs_tid, by="tid")
-
-no_uorf_transcripts <- uORF_te_data %>%
-  filter(is.na(num_uORFs) & tid %in% annotated$`Transcript ID`) %>%
-  select(tid)
-
-ouorfs_tid <- ouorfs %>% mutate("tid"=`Transcript ID`)
-ouORF_te_data <- left_join(te_data,ouorfs_tid, by="tid")
-
-no_ouorf_transcripts <- ouORF_te_data %>%
-  filter(is.na(num_ouORFs) & tid %in% annotated$`Transcript ID`) %>%
-  select(tid)
-
-# intersect
-control_transcripts <-intersect(no_uorf_transcripts$tid,no_ouorf_transcripts$tid)
-```
-### Merge the TE data 
-```{r}
-# first join the uORFs
-all_te_data <- left_join(uORF_te_data,ouorfs_tid, by="tid", suffix=c(".uORF", ".ouORF"))
-uORF_rna_data <- left_join(rna_data,uorfs_tid, by="tid")
-all_rna_data <- left_join(uORF_rna_data,ouorfs_tid, by="tid", suffix=c(".uORF", ".ouORF"))
-```
+table(all_short_orfs$`ORF type`) / sum(table(all_short_orfs$`ORF type`))
 
 
-## Impact of number of Upstream ORFs 
-## uORFs
-### TE
-```{r}
-# classify each transcript by the number of uORFs
+table(all_short_orfs$`ORF type`) / table(table_s3$`ORF type`)
 
-sum(uorfs_tid$`Transcript ID` %in% annotated$`Transcript ID`)
-
-uorfs_tid <- uorfs %>% mutate("tid"=`Transcript ID`)
-uORF_te_data <- left_join(te_data,uorfs_tid, by="tid") 
-  
-uORF_te_data_plot <- all_te_data %>%
-   mutate(class = case_when(tid %in% control_transcripts ~ "0",
-                           num_uORFs == 1 & !tid %in% control_transcripts & is.na(num_ouORFs) ~ "1",
-                           num_uORFs == 2 & !tid %in% control_transcripts & is.na(num_ouORFs) ~ "2",
-                           num_uORFs >= 2 & !tid %in% control_transcripts & is.na(num_ouORFs) ~ "3+"))
-table(uORF_te_data_plot$class)
-
-wilcox_test_subset_1 <- uORF_te_data_plot %>% 
-  filter(class == "0" | class == "1") 
-
-wilcox_test_0v1_te <- wilcox.test(av_all ~ class, data = wilcox_test_subset_1,
-                   exact = FALSE )
-
-wilcox_test_subset_2 <- uORF_te_data_plot %>% 
-  filter(class == "0" | class == "2") 
-
-wilcox_test_0v2_te <- wilcox.test(av_all ~ class, data = wilcox_test_subset_2,
-                   exact = FALSE )
-
- wilcox_test_subset_3 <- uORF_te_data_plot %>% 
-   filter(class == "0" | class == "3+") 
- 
-wilcox_test_0v3_te <- wilcox.test(av_all ~ class, data = wilcox_test_subset_3,
-                    exact = FALSE )
- 
-orf_stats <- data.frame(Key=c("","","",""),
-                        N=c(table(uORF_te_data_plot$class)[1],
-                                          table(uORF_te_data_plot$class)[2],
-                                          table(uORF_te_data_plot$class)[3],
-                                          table(uORF_te_data_plot$class)[4]),
-                        p=c("",signif(wilcox_test_0v1_te$p.value,2),
-                                   signif(wilcox_test_0v2_te$p.value,2),
-                                   signif(wilcox_test_0v3_te$p.value,2)))
-orf_stat_table <- tableGrob(orf_stats, theme = ttheme_gtplain(base_size = 7, padding = unit(c(3, 1), "mm")))
-
-find_cell <- function(table, row, col, name="core-fg"){
-  l <- table$layout
-  which(l$t==row & l$l==col & l$name==name)
-}
-
-ind <- find_cell(orf_stat_table, 2, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#DCE319FF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 3, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#73D055FF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 4, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#238A8DFF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 5, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#453781FF",col="white", lwd=5)
-
-  uORF_te_data_plot <- uORF_te_data_plot %>% mutate(class_append = case_when(
-   class=="0 uORF" ~ paste0("0 uORF [n=",table(uORF_te_data_plot$class)[1],"]"),
-   class=="1 uORF" ~ paste0("1 uORF [n=",table(uORF_te_data_plot$class)[2],", p =", signif(wilcox_test_0v1_te$p.value,3),"]"),
-   class=="2 uORFs" ~ paste0("2 uORFs [n=",table(uORF_te_data_plot$class)[3],", p =",signif(wilcox_test_0v2_te$p.value,3),"]"),
-   class=="3+ uORFs" ~ paste0("3+ uORFs [n=",table(uORF_te_data_plot$class)[4],", p =",signif(wilcox_test_0v3_te$p.value,3) , "]")
- ))
-
-uORF_te_density_plot <- uORF_te_data_plot  %>%
-  filter(!class == "NA" ) %>% 
-  ggplot(aes(x=log2(av_all), color=class)) +
-   stat_ecdf(geom="smooth", se=F, size=0.5) + 
-  theme_bw() +
-  xlim(0,4) +
-  theme(legend.position = "none") +
-  scale_color_manual(values=c("#DCE319FF","#73D055FF","#238A8DFF","#453781FF")) +
-  labs(color="", y="Cumulative proportion", x=expression("Main ORF CDS TE (Log"[2]  * ")")) + 
-
-  theme(legend.position = "none" ) + 
-  annotation_custom(orf_stat_table, xmin = 1.08, xmax = 1, ymin = 0.89, ymax = 0.95)
-uORF_te_density_plot
-#ggsave(plot= uORF_te_density_plot, filename= paste(results_dir,"Figure_4B.png", sep=""), width = 3, height = 3, device='png', dpi=700)
-```
-
-### RNA
-```{r}
-# repeat for RNA
-uORF_rna_data_plot <- all_rna_data  %>%
-   mutate(class = case_when(tid %in% control_transcripts ~ "0",
-                           num_uORFs == 1 & !tid %in% control_transcripts & is.na(num_ouORFs)  ~ "1",
-                           num_uORFs == 2 & !tid %in% control_transcripts & is.na(num_ouORFs) ~ "2",
-                           num_uORFs >= 2 & !tid %in% control_transcripts & is.na(num_ouORFs) ~ "3+"))
-
-wilcox_test_subset_1 <- uORF_rna_data_plot %>% 
-  filter(class == "0" | class == "1") 
-
-wilcox_test_0v1_rna <- wilcox.test(av_all ~ class, data = wilcox_test_subset_1,
-                   exact = FALSE )
-
-wilcox_test_subset_2 <- uORF_rna_data_plot %>% 
-  filter(class == "0" | class == "2") 
-
-wilcox_test_0v2_rna <- wilcox.test(av_all ~ class, data = wilcox_test_subset_2,
-                   exact = FALSE )
-
-wilcox_test_subset_3 <- uORF_rna_data_plot %>% 
-  filter(class == "0" | class == "3+") 
-
-wilcox_test_0v3_rna <- wilcox.test(av_all ~ class, data = wilcox_test_subset_3,
-                   exact = FALSE )
-
-orf_stats <- data.frame(Key=c("","","",""),
-                        N=c(table(uORF_rna_data_plot$class)[1],
-                                          table(uORF_rna_data_plot$class)[2],
-                                          table(uORF_rna_data_plot$class)[3],
-                                          table(uORF_rna_data_plot$class)[4]),
-                        p=c("",signif(wilcox_test_0v1_rna$p.value,3),
-                                   signif(wilcox_test_0v2_rna$p.value,3),
-                                   signif(wilcox_test_0v3_rna$p.value,3)))
-orf_stat_table <- tableGrob(orf_stats, theme = ttheme_gtplain(base_size = 6, padding = unit(c(3, 1), "mm")))
-
-find_cell <- function(table, row, col, name="core-fg"){
-  l <- table$layout
-  which(l$t==row & l$l==col & l$name==name)
-}
-
-ind <- find_cell(orf_stat_table, 2, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#DCE319FF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 3, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#73D055FF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 4, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#238A8DFF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 5, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#453781FF",col="white", lwd=5) 
-
-  uORF_rna_data_plot <- uORF_rna_data_plot %>% mutate(class_append = case_when(
-   class=="0 uORF" ~ paste0("0 uORF [n=",table(uORF_rna_data_plot$class)[1],"]"),
-   class=="1 uORF" ~ paste0("1 uORF [n=",table(uORF_rna_data_plot$class)[2],", p =", signif(wilcox_test_0v1_te$p.value,3),"]"),
-   class=="2 uORFs" ~ paste0("2 uORFs [n=",table(uORF_rna_data_plot$class)[3],", p =",signif(wilcox_test_0v2_te$p.value,3),"]"),
-   class=="3+ uORFs" ~ paste0("3+ uORFs [n=",table(uORF_rna_data_plot$class)[4],", p =",signif(wilcox_test_0v3_te$p.value,3) , "]")
- ))
-
-uORF_rna_density_plot <- uORF_rna_data_plot  %>%
-  filter(!class == "NA" ) %>%
-  ggplot(aes(x=log2(av_all), color=class)) +
-   stat_ecdf(geom="smooth", se=F, size=0.5) + 
-  theme_bw() +
-  xlim(0,4) +
-  theme(legend.position = c(0.7,0.15), legend.text = element_text(size=5), legend.spacing = unit(0.1,"cm")) +
-  scale_color_manual(values=c("#DCE319FF","#73D055FF","#238A8DFF","#453781FF")) +
-  labs(color="", y="Cumulative proportion", x=expression("RNA abundance RPKM (Log"[2]  * ")")) + 
-  theme(legend.position = "none" ) + 
-  annotation_custom(orf_stat_table, xmin = 0.53, xmax = 0.53, ymin = 0.93, ymax = 0.93)
-uORF_rna_density_plot 
-
-#ggsave(plot= uORF_rna_density_plot, filename= paste(results_dir,"Figure_3.3_S3A.png", sep=""), width = 3, height = 3, device='png', dpi=700)
-```
+table_s3 %>%
+  filter(`Length (AAs)` < 100) %>%
+  summarise(median(`Length (AAs)`))
 
 
-## ouORFs
-### TE
-```{r}
-ouORF_te_data_plot <- all_te_data  %>%
-   mutate(class = case_when( tid %in% control_transcripts  ~ "0",
-                           num_ouORFs > 0 & !tid %in% control_transcripts & is.na(num_uORFs) ~ "1+"))
-
-
-wilcox_test_subset_1 <- ouORF_te_data_plot %>%
-  filter(class == "0" | class == "1+") 
-
-wilcox_test_0vouorf_te <- wilcox.test(av_all ~ class, data = wilcox_test_subset_1,
-                   exact = FALSE )
-
-orf_stats <- data.frame(Key=c("",""),
-                        N=c(table(ouORF_te_data_plot$class)[1],
-                                          table(ouORF_te_data_plot$class)[2]),
-                        p=c("",signif(wilcox_test_0vouorf_te$p.value,2)))
-orf_stat_table <- tableGrob(orf_stats, theme = ttheme_gtplain(base_size = 6, padding = unit(c(3, 1), "mm")))
-
-find_cell <- function(table, row, col, name="core-fg"){
-  l <- table$layout
-  which(l$t==row & l$l==col & l$name==name)
-}
-
-ind <- find_cell(orf_stat_table, 2, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#DCE319FF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 3, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#73D055FF",col="white", lwd=5) 
-
-
-
- ouORF_te_data_plot <- ouORF_te_data_plot %>% 
-   mutate(class_append = case_when(
-   class=="0 ouORF" ~ paste0("0 ouORF [n=",table(ouORF_te_data_plot$class)[1],"]"),
-   class=="1-2 ouORFs" ~ paste0("1-2 ouORFs [n=",table(ouORF_te_data_plot$class)[2],", p =",signif(wilcox_test_0vouorf_te$p.value,3), "]")
- ))
-
-ouORF_te_density_plot <- ouORF_te_data_plot  %>%
-  filter(!class == "NA" ) %>%
-  ggplot(aes(x=log2(av_all), color=class)) +
-   stat_ecdf(geom="smooth", se=F, size=0.5) + 
-  theme_bw() +
-  xlim(0,4) +
-  scale_color_manual(values=c("#DCE319FF","#73D055FF")) +
-  labs(color="", y="Cumulative proportion", x=expression("Main ORF CDS TE (Log"[2]  * ")")) + 
-  theme(legend.position = "none" ) +
-  annotation_custom(orf_stat_table, xmin = 0.75, xmax = 1.07, ymin = 0.96, ymax =1)
-ouORF_te_density_plot  
-
-#ggsave(plot= ouORF_te_density_plot, filename= paste(results_dir,"Figure_4E.png", sep=""), width = 3, height = 3, device='png', dpi=700)
-```
-
-### RNA 
-```{r}
-ouORF_rna_data_plot <- all_rna_data  %>%
-   mutate(class = case_when( tid %in% control_transcripts  ~ "0",
-                           num_ouORFs > 0 & !tid %in% control_transcripts & is.na(num_uORFs) ~ "1+"))
-
-wilcox_test_subset_1 <- ouORF_rna_data_plot %>%
-  filter(class == "0" | class == "1+") 
-
-wilcox_test_0vouorf_rna<- wilcox.test(av_all ~ class, data = wilcox_test_subset_1,
-                   exact = FALSE )
-
-orf_stats <- data.frame(Key=c("",""),
-                        N=c(table(ouORF_rna_data_plot$class)[1],
-                                          table(ouORF_rna_data_plot$class)[2]),
-                        p=c("",signif(wilcox_test_0vouorf_rna$p.value,2)))
-orf_stat_table <- tableGrob(orf_stats, theme = ttheme_gtplain(base_size = 6, padding = unit(c(3, 1), "mm")))
-
-find_cell <- function(table, row, col, name="core-fg"){
-  l <- table$layout
-  which(l$t==row & l$l==col & l$name==name)
-}
-
-ind <- find_cell(orf_stat_table, 2, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#DCE319FF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 3, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#73D055FF",col="white", lwd=5) 
-
-
-
- ouORF_rna_data_plot <- ouORF_rna_data_plot %>% 
-   mutate(class_append = case_when(
-   class=="0 ouORF" ~ paste0("0 ouORF [n=",table(ouORF_rna_data_plot$class)[1],"]"),
-   class=="1-2 ouORFs" ~ paste0("1-2 ouORFs [n=",table(ouORF_rna_data_plot$class)[2],", p =",signif(wilcox_test_0vouorf_rna$p.value,3), "]")
- ))
-
-ouORF_rna_density_plot <- ouORF_rna_data_plot  %>%
-  filter(!class == "NA" ) %>%
-  ggplot(aes(x=log2(av_all), color=class)) +
-   stat_ecdf(geom="smooth", se=F, size=0.5) + 
-  theme_bw() +
-  xlim(0,4) +
-  scale_color_manual(values=c("#DCE319FF","#73D055FF")) +
-  labs(color="", y="Cumulative proportion", x=expression("RNA abundance RPKM (Log"[2]  * ")")) + 
-  theme(legend.position = "none" ) +
-  annotation_custom(orf_stat_table, xmin = 0.45, xmax = 0.45, ymin = 0.96, ymax =1)
-ouORF_rna_density_plot  
-
-#ggsave(plot= ouORF_rna_density_plot, filename= paste(results_dir,"Figure_3.3_S3B.png", sep=""), width = 3, height = 3, device='png', dpi=700)
-```
-
-# Comparison of uORF and ouORF
-### TE
-```{r}
-# comparison of a single ATG initiated uORF and ouORF
-single_atg_uorf_data <- all_te_data %>%
-  mutate(class2 = case_when(
-    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "ATG" ~"1 uORF AUG",
-    num_ouORFs == 1 & is.na(num_uORFs) & `Start codon.ouORF` == "ATG" ~"1 ouORF AUG",
-    is.na(num_uORFs) & is.na(num_uORFs) & tid %in% control_transcripts ~"0"
+sORF_codon <- table_s3 %>%
+  mutate(length_classification = case_when(
+    `Length (AAs)` >= 100 ~ ">= 100aa",
+    TRUE ~ "< 100aa"
   )) %>%
-  filter(!is.na(class2))
+  mutate(length_classification = fct_rev(as.factor(length_classification))) %>%
+  filter(`ORF type` == "Upstream" | `ORF type` == "Start overlap" | `ORF type` == "New")
 
-wilcox_test_subset_1 <-single_atg_uorf_data %>%
-  filter(class2 == "1 uORF AUG" | class2 == "1 ouORF AUG") 
+table(sORF_codon$`ORF type`,sORF_codon$`Start codon`)
 
-wilcox_test_uorf_ouorf_te <- wilcox.test(av_all ~ class2, data = wilcox_test_subset_1,
-                   exact = FALSE )
-
-
-orf_stats <- data.frame(Key=c("","",""),
-                        N=c(table(single_atg_uorf_data$class2)[1],
-                                          table(single_atg_uorf_data$class2)[2],
-                           table(single_atg_uorf_data$class2)[3]),
-                        p=c("","",signif(wilcox_test_uorf_ouorf_te$p.value,2)))
-
-orf_stat_table <- tableGrob(orf_stats, theme = ttheme_gtplain(base_size = 6, padding = unit(c(3, 1), "mm")))
-
-find_cell <- function(table, row, col, name="core-fg"){
-  l <- table$layout
-  which(l$t==row & l$l==col & l$name==name)
-}
-
-ind <- find_cell(orf_stat_table, 2, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#DCE319FF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 3, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#73D055FF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 4, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#238A8DFF",col="white", lwd=5) 
-
-single_atg_uorf_plot_te <- single_atg_uorf_data %>% 
-  ggplot(aes(x=log2(av_all), color=class2)) +
-   stat_ecdf(geom="smooth", se=F, size=0.5) + 
-  theme_bw() +
-  xlim(0,4) +
-  theme(legend.position = c(0.7,0.15), legend.text = element_text(size=5), legend.spacing = unit(0.1,"cm")) +
-  scale_color_manual(values=c("#DCE319FF","#73D055FF","#238A8DFF")) +
-  labs(color="", y="Cumulative proportion", x=expression("Main ORF CDS TE (Log"[2]  * ")")) + 
-  theme(legend.position = "none" ) + 
-  annotation_custom(orf_stat_table, xmin = 1.2, xmax = 1.2, ymin = 0.97, ymax = 0.95)
-single_atg_uorf_plot_te
-#ggsave(plot= single_atg_uorf_plot_te, filename= paste(results_dir,"Figure_3.3_S4.png", sep=""), width = 3, height = 3, device='png', dpi=700)
-```
-
-### RNA
-```{r}
-# comparison of a single ATG initiated uORF and ouORF
-single_atg_uorf_data <- all_rna_data %>%
-  mutate(class2 = case_when(
-    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "ATG" ~"1 uORF AUG",
-    num_ouORFs == 1 & is.na(num_uORFs) & `Start codon.ouORF` == "ATG" ~"1 ouORF AUG",
-    is.na(num_uORFs) & is.na(num_uORFs) & tid %in% control_transcripts ~"0"
+proportion_sorf <- table_s3 %>%
+  mutate(length_classification = case_when(
+    `Length (AAs)` >= 100 ~ ">= 100aa",
+    TRUE ~ "< 100aa"
   )) %>%
-  filter(!is.na(class2))
-
-wilcox_test_subset_1 <-single_atg_uorf_data %>%
-  filter(class2 == "1 uORF AUG" | class2 == "1 ouORF AUG") 
-
-wilcox_test_uorf_ouorf_rna <- wilcox.test(av_all ~ class2, data = wilcox_test_subset_1,
-                   exact = FALSE )
-
-
-orf_stats <- data.frame(Key=c("","",""),
-                        N=c(table(single_atg_uorf_data$class2)[1],
-                                          table(single_atg_uorf_data$class2)[2],
-                           table(single_atg_uorf_data$class2)[3]),
-                        p=c("","",signif(wilcox_test_uorf_ouorf_rna$p.value,2)))
-
-orf_stat_table <- tableGrob(orf_stats, theme = ttheme_gtplain(base_size = 6, padding = unit(c(3, 1), "mm")))
-
-find_cell <- function(table, row, col, name="core-fg"){
-  l <- table$layout
-  which(l$t==row & l$l==col & l$name==name)
-}
-
-ind <- find_cell(orf_stat_table, 2, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#DCE319FF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 3, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#73D055FF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 4, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#238A8DFF",col="white", lwd=5) 
-
-single_atg_uorf_plot_rna <- single_atg_uorf_data %>% 
-  ggplot(aes(x=log2(av_all), color=class2)) +
-   stat_ecdf(geom="smooth", se=F, size=0.5) + 
+  mutate(length_classification = fct_rev(as.factor(length_classification))) %>%
+  filter(`ORF type` == "Upstream" | `ORF type` == "Start overlap" | `ORF type` == "New") %>%
+  ggplot(aes(x = `ORF type`, fill = length_classification)) +
+  geom_bar(position = "fill") +
+  scale_fill_manual(values = c("#FDE725FF", "#482677FF")) +
   theme_bw() +
-  xlim(0,4) +
-  theme(legend.position = c(0.7,0.15), legend.text = element_text(size=5), legend.spacing = unit(0.1,"cm")) +
-  scale_color_manual(values=c("#DCE319FF","#73D055FF","#238A8DFF")) +
-  labs(color="", y="Cumulative proportion", x=expression("RNA abundance RPKM (Log"[2]  * ")")) + 
-  theme(legend.position = "none" ) + 
-  annotation_custom(orf_stat_table, xmin = 1.35, xmax = 1.35, ymin = 0.97, ymax = 0.95)
+  labs(x = "", y = "Proportion of ORFs", fill = "") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+proportion_sorf
+ggsave(plot = proportion_sorf, filename = paste(results_dir, "Figure 3B.png", sep = ""), width = 3, height = 3.5, device = "png", dpi = 700)
+```
+### Amino acid frequencies
+```{r}
+fasta <- readAAStringSet("../../amino_acid_analysis/long_orfs_for_AA_freq.fasta")
+long_ORF <- colSums(alphabetFrequency(fasta)[, AA_STANDARD]) / (sum(colSums(alphabetFrequency(fasta)[, AA_STANDARD])))
 
+fasta <- readAAStringSet("../../amino_acid_analysis/upstream_short_orfs_for_AA_freq.fasta")
+short_upstream_ORF <- colSums(alphabetFrequency(fasta)[, AA_STANDARD]) / (sum(colSums(alphabetFrequency(fasta)[, AA_STANDARD])))
 
+fasta <- readAAStringSet("../../amino_acid_analysis/non_coding_orfs.fasta")
+short_ncRNA_ORF <- colSums(alphabetFrequency(fasta)[, AA_STANDARD]) / (sum(colSums(alphabetFrequency(fasta)[, AA_STANDARD])))
 
-#ggsave(plot= joined_plot_S3, filename= paste(results_dir,"Figure_3.3_S3.png", sep=""), width = 6, height = 3, device='png', dpi=700)
+# display all AAs
+amino_acid_plot_full <- bind_rows(long_ORF, short_upstream_ORF, short_ncRNA_ORF) %>%
+  mutate(type = c("Annotated >= 100aa", "uORFs < 100aa", "New < 100aa")) %>%
+  pivot_longer(names_to = "AA", values_to = "Freq", cols = -contains("type")) %>%
+  mutate(aa_name = AMINO_ACID_CODE[AA]) %>%
+  ggplot(aes(x = aa_name, y = Freq, fill = type)) +
+  geom_col(width = 0.6, position = position_dodge(width = 0.6)) +
+  theme_bw() +
+  labs(x = "", y = "Frequency", fill = "") +
+  scale_fill_manual(values = c("#CC79A7", "#35968CFF", "#999933")) +
+  theme(legend.position = "right")
+amino_acid_plot_full
+ggsave(plot = amino_acid_plot_full, filename = paste(results_dir, "Figure S4.png", sep = ""), width = 7, height = 3.5, device = "png", dpi = 700)
 
+# display AAs that are different
+amino_acid_plot_selected <- bind_rows(long_ORF, short_upstream_ORF, short_ncRNA_ORF) %>%
+  mutate(type = c("Annotated >= 100aa", "uORFs < 100aa", "New < 100aa")) %>%
+  pivot_longer(names_to = "AA", values_to = "Freq", cols = -contains("type")) %>%
+  mutate(aa_name = AMINO_ACID_CODE[AA]) %>%
+  filter(aa_name != "His" & aa_name != "Leu" & aa_name != "Ser" & aa_name != "Val" & aa_name != "Thr" & aa_name != "Phe") %>%
+  ggplot(aes(x = aa_name, y = Freq, fill = type)) +
+  geom_col(width = 0.6, position = position_dodge(width = 0.6)) +
+  theme_bw() +
+  labs(x = "", y = "Frequency", fill = "") +
+  scale_fill_manual(values = c("#CC6677", "#035968", "#999933")) +
+  theme(legend.position = "right")
+
+amino_acid_plot_selected
+ggsave(plot = amino_acid_plot_selected, filename = paste(results_dir, "Figure 3C.png", sep = ""), width = 7, height = 3.5, device = "png", dpi = 700)
 ```
 
-# Comparison of initiation codon 
-## uORFs
-### TE
+## Coverage track plots
+### Load bedgraph data
+```{r include=FALSE}
+harr_min_nd <- read_tsv("../../alignment_tracks/merged/harr-nd.bedgraph",
+  col_names = F
+) %>% mutate(ribotype = "harr-nd")
+
+chx_bedgraph <- read_tsv("../../alignment_tracks/merged/chx.p.site.transcriptome.bedgraph",
+  col_names = F
+) %>% mutate(ribotype = "chx")
+
+
+chx_full_bedgraph <- read_tsv("../../alignment_tracks/merged/chx.fullcov.transcriptome.bedgraph",
+  col_names = F
+) %>% mutate(ribotype = "chx_full")
+
+bedgraph_data <- bind_rows(harr_min_nd, chx_bedgraph, chx_full_bedgraph)
+
+range01 <- function(x) {
+  (x - min(x)) / (max(x) - min(x))
+}
+```
+
+### DDIT3 uORF
 ```{r}
-# comparison of different start codons for uORF
-single_uORF_codon_te <- all_te_data %>%
-  mutate(class2 = case_when(
-    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "ATG" ~"AUG",
-    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "CTG" ~"CUG",
-    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "GTG" ~"GUG",
-    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "TTG" ~"UUG",
-    is.na(num_ouORFs) & is.na(num_ouORFs) & tid %in% control_transcripts ~"0"
+selected_transcript <- "XM_027392226.1"
+
+current_orf <- table_s3 %>%
+  filter(`Transcript ID` == selected_transcript)
+current_orf
+
+
+chx_p_scaled <- bedgraph_data %>%
+  filter(X1 == selected_transcript) %>%
+  filter(ribotype == "chx") %>%
+  # filter(X2 <= max(current_orf$`Transcript stop position`) & X2 >= 0) %>%
+  mutate(scale_bpm = range01(X4))
+
+chx_full_scaled <- bedgraph_data %>%
+  filter(X1 == selected_transcript) %>%
+  filter(ribotype == "chx_full") %>%
+  # filter(X2 <= 1056 & X2 >= 0) %>%
+  mutate(scale_bpm = range01(X4))
+
+track_data <- bind_rows(chx_p_scaled, chx_full_scaled)
+
+track_data <- track_data %>%
+  mutate(frame = ifelse(X2 >= current_orf$`Transcript start position` & X2 <= current_orf$`Transcript stop position` & ribotype == "chx", (X2 - current_orf$`Transcript start position`) %% 3,
+    ifelse(X2 >= 167 & X2 <= 617 & ribotype == "chx", (X2 - 167) %% 3, NA)
   ))
 
-wilcox_test_ATG_uORF_data <-single_uORF_codon_te %>%
-  filter(class2 == "AUG" | class2 == "0") 
 
-wilcox_test_ATG_uORF <- wilcox.test(av_all ~ class2, data = wilcox_test_ATG_uORF_data,
-                   exact = FALSE )
-
-wilcox_test_CTG_uORF_data <-single_uORF_codon_te %>%
-  filter(class2 == "CUG" | class2 == "0") 
-
-wilcox_test_CTG_uORF <- wilcox.test(av_all ~ class2, data = wilcox_test_CTG_uORF_data,
-                   exact = FALSE )
-
-wilcox_test_GTG_uORF_data <-single_uORF_codon_te %>%
-  filter(class2 == "GUG" | class2 == "0") 
-
-wilcox_test_GTG_uORF <- wilcox.test(av_all ~ class2, data = wilcox_test_GTG_uORF_data,
-                   exact = FALSE )
-
-wilcox_test_TTG_uORF_data <-single_uORF_codon_te %>%
-  filter(class2 == "UUG" | class2 == "0") 
-
-wilcox_test_TTG_uORF <- wilcox.test(av_all ~ class2, data = wilcox_test_TTG_uORF_data,
-                   exact = FALSE )
-
-orf_stats <- data.frame(Key=c("","","","",""),
-                        N=c(
-                          table(single_uORF_codon_te$class2)[1],
-                           table(single_uORF_codon_te$class2)[2],
-                           table(single_uORF_codon_te$class2)[3],
-                           table(single_uORF_codon_te$class2)[4],
-                           table(single_uORF_codon_te$class2)[5]),
-                        p=c("",
-                           signif(wilcox_test_ATG_uORF$p.value,2),
-                            signif(wilcox_test_CTG_uORF$p.value,2),
-                            signif(wilcox_test_GTG_uORF$p.value,2),
-                           signif(wilcox_test_TTG_uORF$p.value,2)
-                            ))
-
-orf_stat_table <- tableGrob(orf_stats, theme = ttheme_gtplain(base_size = 6, padding = unit(c(3, 1), "mm")))
-
-find_cell <- function(table, row, col, name="core-fg"){
-  l <- table$layout
-  which(l$t==row & l$l==col & l$name==name)
-}
-
-ind <- find_cell(orf_stat_table, 2, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#DCE319FF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 3, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#73D055FF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 4, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#20A387FF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 5, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#33638DFF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 6, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#440154FF",col="white", lwd=5) 
-
-single_uORF_codon_te_ecdf <- single_uORF_codon_te %>%
-  ggplot(aes(x=log2(av_all), color=class2)) +
-   stat_ecdf(geom="smooth", se=F, size=0.5) + 
-    xlim(0,4) +
+chx_plot <- track_data %>%
+  filter(ribotype == "chx" | ribotype == "chx_full") %>%
+  ggplot(aes(x = X2, y = scale_bpm, fill = frame, alpha = ribotype)) +
+  annotate("rect",
+    xmin = c(current_orf$`Transcript start position`, 167), xmax = c(current_orf$`Transcript stop position`, 617), ymin = 0, ymax = 1,
+    alpha = .1, fill = c("#999933", "#CC6677")
+  ) +
+  geom_bar(stat = "identity", position = "identity") +
+  scale_fill_viridis() +
+  # geom_vline(xintercept =c(36,141,168,617),  size=0.2, linetype=11) +
+  scale_alpha_discrete(range = c(1, 0.3)) +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
   theme_bw() +
-    theme(legend.position = "none") +
-  scale_color_manual(values=c("#DCE319FF","#73D055FF","#20A387FF","#33638DFF","#440154FF")) +
-  labs(color="", y="Cumulative proportion", x=expression("Main ORF CDS TE (Log"[2]  * ")")) + 
-  theme(legend.position = "none" ) + 
-  annotation_custom(orf_stat_table, xmin = 0.98, xmax = 1, ymin = 0.87, ymax = 0.95)
+  geom_text_npc(aes(npcx = 0.95, npcy = 0.95), label = "CHX", size = 6) +
+  labs(
+    x = "Transcript coordinates (nts)",
+    y = "Ribo-seq (Scaled BPM)"
+  )
+chx_plot$layers <- c(geom_bar(stat = "identity", position = "identity"), chx_plot$layers)
+chx_plot + theme(legend.position = "none")
 
-single_uORF_codon_te_ecdf
-#ggsave(plot= single_uORF_codon_te_ecdf, filename= paste(results_dir,"Figure_3.3_H.png", sep=""), width = 3, height = 3, device='png', dpi=700)
+ggsave(filename = paste(results_dir, "Figure 3D.png", sep = ""), width = 6, height = 3, device = "png", dpi = 700)
 ```
-
-### RNA
+### Rad51d ouORF
 ```{r}
-# comparison of different start codons for uORF
-single_uORF_codon_rna <- all_rna_data %>%
-  mutate(class2 = case_when(
-    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "ATG" ~"AUG",
-    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "CTG" ~"CUG",
-    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "GTG" ~"GUG",
-    num_uORFs == 1 & is.na(num_ouORFs) & `Start codon.uORF` == "TTG" ~"UUG",
-    is.na(num_ouORFs) & is.na(num_ouORFs) & tid %in% control_transcripts ~"0"
+selected_transcript <- "XM_027426482.2"
+current_orf <- table_s3 %>%
+  filter(`Transcript ID` == selected_transcript)
+current_orf
+
+chx_p_scaled <- bedgraph_data %>%
+  filter(X1 == selected_transcript) %>%
+  filter(ribotype == "chx") %>%
+  # filter(X2 <= max(current_orf$`Transcript stop position`) & X2 >= 0) %>%
+  mutate(scale_bpm = range01(X4))
+
+chx_full_scaled <- bedgraph_data %>%
+  filter(X1 == selected_transcript) %>%
+  filter(ribotype == "chx_full") %>%
+  # filter(X2 <= 1056 & X2 >= 0) %>%
+  mutate(scale_bpm = range01(X4))
+
+track_data <- bind_rows(chx_p_scaled, chx_full_scaled)
+
+track_data <- track_data %>%
+  mutate(frame = ifelse(X2 >= current_orf$`Transcript start position` & X2 <= current_orf$`Transcript stop position` & ribotype == "chx", (X2 - current_orf$`Transcript start position`) %% 3,
+    ifelse(X2 >= 191 & X2 <= 1180 & ribotype == "chx", (X2 - 191) %% 3, NA)
   ))
 
-wilcox_test_ATG_uORF_data <-single_uORF_codon_rna %>%
-  filter(class2 == "AUG" | class2 == "0") 
 
-wilcox_test_ATG_uORF <- wilcox.test(av_all ~ class2, data = wilcox_test_ATG_uORF_data,
-                   exact = FALSE )
-
-wilcox_test_CTG_uORF_data <-single_uORF_codon_rna %>%
-  filter(class2 == "CUG" | class2 == "0") 
-
-wilcox_test_CTG_uORF <- wilcox.test(av_all ~ class2, data = wilcox_test_CTG_uORF_data,
-                   exact = FALSE )
-
-wilcox_test_GTG_uORF_data <-single_uORF_codon_rna %>%
-  filter(class2 == "GUG" | class2 == "0") 
-
-wilcox_test_GTG_uORF <- wilcox.test(av_all ~ class2, data = wilcox_test_GTG_uORF_data,
-                   exact = FALSE )
-
-wilcox_test_TTG_uORF_data <-single_uORF_codon_rna %>%
-  filter(class2 == "UUG" | class2 == "0") 
-
-wilcox_test_TTG_uORF <- wilcox.test(av_all ~ class2, data = wilcox_test_TTG_uORF_data,
-                   exact = FALSE )
-
-orf_stats <- data.frame(Key=c("","","","",""),
-                        N=c(
-                          table(single_uORF_codon_rna$class2)[1],
-                           table(single_uORF_codon_rna$class2)[2],
-                           table(single_uORF_codon_rna$class2)[3],
-                           table(single_uORF_codon_rna$class2)[4],
-                           table(single_uORF_codon_rna$class2)[5]),
-                        p=c("",
-                           signif(wilcox_test_ATG_uORF$p.value,2),
-                            signif(wilcox_test_CTG_uORF$p.value,2),
-                            signif(wilcox_test_GTG_uORF$p.value,2),
-                           signif(wilcox_test_TTG_uORF$p.value,2)
-                            ))
-
-orf_stat_table <- tableGrob(orf_stats, theme = ttheme_gtplain(base_size = 6, padding = unit(c(3, 1), "mm")))
-
-find_cell <- function(table, row, col, name="core-fg"){
-  l <- table$layout
-  which(l$t==row & l$l==col & l$name==name)
-}
-
-ind <- find_cell(orf_stat_table, 2, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#DCE319FF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 3, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#73D055FF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 4, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#20A387FF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 5, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#33638DFF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 6, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#440154FF",col="white", lwd=5) 
-
-single_uORF_codon_rna_ecdf <- single_uORF_codon_rna %>%
-  ggplot(aes(x=log2(av_all), color=class2)) +
-   stat_ecdf(geom="smooth", se=F, size=0.5) + 
-    xlim(0,4) +
+chx_plot <- track_data %>%
+  filter(ribotype == "chx" | ribotype == "chx_full") %>%
+  ggplot(aes(x = X2, y = scale_bpm, fill = frame, alpha = ribotype)) +
+  annotate("rect",
+    xmin = c(current_orf$`Transcript start position`, 191), xmax = c(current_orf$`Transcript stop position`, 1180), ymin = 0, ymax = 1,
+    alpha = .1, fill = c("#332288", "#CC6677")
+  ) +
+  geom_bar(stat = "identity", position = "identity") +
+  scale_fill_viridis() +
+  # geom_vline(xintercept =c(36,141,168,617),  size=0.2, linetype=11) +
+  scale_alpha_discrete(range = c(1, 0.3)) +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
   theme_bw() +
-    theme(legend.position = "none") +
-  scale_color_manual(values=c("#DCE319FF","#73D055FF","#20A387FF","#33638DFF","#440154FF")) +
-  labs(color="", y="Cumulative proportion", x=expression("RNA abundance RPKM (Log"[2]  * ")")) + 
-  theme(legend.position = "none" ) + 
-  annotation_custom(orf_stat_table, xmin = 0.55, xmax = 0.55, ymin = 0.87, ymax = 0.95)
+  geom_text_npc(aes(npcx = 0.95, npcy = 0.95), label = "CHX", size = 6) +
+  labs(
+    x = "Transcript coordinates (nts)",
+    y = "Ribo-seq (Scaled BPM)"
+  )
+chx_plot$layers <- c(geom_bar(stat = "identity", position = "identity"), chx_plot$layers)
+chx_plot + theme(legend.position = "none")
 
-single_uORF_codon_rna_ecdf
-#ggsave(plot= single_uORF_codon_rna_ecdf, filename= paste(results_dir,"Figure_3.3_H.png", sep=""), width = 3, height = 3, device='png', dpi=700)
+ggsave(filename = paste(results_dir, "Figure 3E.png", sep = ""), width = 6, height = 3, device = "png", dpi = 700)
 ```
-## ouORF
-### TE
-```{r}
-single_ouORF_codon_te <- all_te_data %>%
-  mutate(class2 = case_when(
-    num_ouORFs ==1 & is.na(num_uORFs) & `Start codon.ouORF` == "ATG" ~"AUG",
-    num_ouORFs ==1 & is.na(num_uORFs) & `Start codon.ouORF` == "CTG" ~"CUG",
-    num_ouORFs ==1 & is.na(num_uORFs) & `Start codon.ouORF` == "GTG" ~"GUG",
-    num_ouORFs ==1 & is.na(num_uORFs) & `Start codon.ouORF` == "TTG" ~"UUG",
-    is.na(num_ouORFs) & is.na(num_ouORFs) & tid %in% control_transcripts ~"0"
-  )) %>%
-  filter(!is.na(class2)) 
 
-wilcox_test_ATG_ouORF_data <-single_ouORF_codon_te %>%
-  filter(class2 == "AUG" | class2 == "0") 
+### XR_004770827.1_96502054_66aa
+```{r message=FALSE, warning=FALSE}
+selected_transcript <- "XR_004770827.1_96502054_66aa"
 
-wilcox_test_ATG_ouORF <- wilcox.test(av_all ~ class2, data = wilcox_test_ATG_ouORF_data,
-                   exact = FALSE )
+current_orf <- table_s3 %>%
+  filter(`ORF-RATER name` == selected_transcript) %>%
+  filter(`ORF type` == "New")
+current_orf
 
-wilcox_test_CTG_ouORF_data <-single_ouORF_codon_te %>%
-  filter(class2 == "CUG" | class2 == "0") 
+chx_p_scaled <- bedgraph_data %>%
+  filter(X1 == current_orf$`Transcript ID`) %>%
+  filter(ribotype == "chx") %>%
+  # filter(X2 <= max(current_orf$`Transcript stop position`) & X2 >= 0) %>%
+  mutate(scale_bpm = range01(X4))
 
-wilcox_test_CTG_ouORF <- wilcox.test(av_all ~ class2, data = wilcox_test_CTG_ouORF_data,
-                   exact = FALSE )
+chx_full_scaled <- bedgraph_data %>%
+  filter(X1 == current_orf$`Transcript ID`) %>%
+  filter(ribotype == "chx_full") %>%
+  # filter(X2 <= 1056 & X2 >= 0) %>%
+  mutate(scale_bpm = range01(X4))
 
-wilcox_test_GTG_ouORF_data <-single_ouORF_codon_te %>%
-  filter(class2 == "GUG" | class2 == "0") 
+track_data <- bind_rows(chx_p_scaled, chx_full_scaled) %>%
+  filter(X2 >= 0 & X2 <= 1000)
 
-wilcox_test_GTG_ouORF <- wilcox.test(av_all ~ class2, data = wilcox_test_GTG_ouORF_data,
-                   exact = FALSE )
+track_data <- track_data %>%
+  mutate(frame = ifelse(X2 >= current_orf$`Transcript start position`[1] & X2 <= current_orf$`Transcript stop position`[1] & ribotype == "chx", (X2 - current_orf$`Transcript start position`[1]) %% 3, NA))
 
-wilcox_test_TTG_ouORF_data <-single_ouORF_codon_te %>%
-  filter(class2 == "UUG" | class2 == "0") 
-
-wilcox_test_TTG_ouORF <- wilcox.test(av_all ~ class2, data = wilcox_test_TTG_ouORF_data,
-                   exact = FALSE )
-
-orf_stats <- data.frame(Key=c("","","","",""),
-                        N=c(
-                          table(single_ouORF_codon_te$class2)[1],
-                           table(single_ouORF_codon_te$class2)[2],
-                           table(single_ouORF_codon_te$class2)[3],
-                           table(single_ouORF_codon_te$class2)[4],
-                           table(single_ouORF_codon_te$class2)[5]),
-                        p=c("",
-                           signif(wilcox_test_ATG_ouORF$p.value,2),
-                            signif(wilcox_test_CTG_ouORF$p.value,2),
-                            signif(wilcox_test_GTG_ouORF$p.value,2),
-                           signif(wilcox_test_TTG_ouORF$p.value,2)
-                            ))
-
-orf_stat_table <- tableGrob(orf_stats, theme = ttheme_gtplain(base_size = 6, padding = unit(c(3, 1), "mm")))
-
-find_cell <- function(table, row, col, name="core-fg"){
-  l <- table$layout
-  which(l$t==row & l$l==col & l$name==name)
-}
-
-ind <- find_cell(orf_stat_table, 2, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#DCE319FF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 3, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#73D055FF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 4, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#20A387FF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 5, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#33638DFF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 6, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#440154FF",col="white", lwd=5) 
-
-single_ouORF_codon_te_ecdf <- single_ouORF_codon_te %>%
-  ggplot(aes(x=log2(av_all), color=class2)) +
-   stat_ecdf(geom="smooth", se=F, size=0.5) + 
-    xlim(0,4) +
+chx_plot <- track_data %>%
+  filter(ribotype == "chx" | ribotype == "chx_full") %>%
+  ggplot(aes(x = X2, y = scale_bpm, fill = frame, alpha = ribotype)) +
+  annotate("rect",
+    xmin = c(current_orf$`Transcript start position`), xmax = c(current_orf$`Transcript stop position`), ymin = 0, ymax = 1,
+    alpha = .1, fill = c("#35968CFF")
+  ) +
+  geom_bar(stat = "identity", position = "identity") +
+  scale_fill_viridis() +
+  # geom_vline(xintercept =c(36,141,168,617),  size=0.2, linetype=11) +
+  scale_alpha_discrete(range = c(1, 0.3)) +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
   theme_bw() +
-    theme(legend.position = "none") +
-  scale_color_manual(values=c("#DCE319FF","#73D055FF","#20A387FF","#33638DFF","#440154FF")) +
-  labs(color="", y="Cumulative proportion", x=expression("Main ORF CDS TE (Log"[2]  * ")")) + 
-  theme(legend.position = "none" ) + 
-  annotation_custom(orf_stat_table, xmin = 0.98, xmax = 1, ymin = 0.87, ymax = 0.95)
+  geom_text_npc(aes(npcx = 0.95, npcy = 0.95), label = "CHX", size = 6) +
+  labs(
+    x = "Transcript coordinates (nts)",
+    y = "RiboSeq coverage (BPM)",
+    # title = "LOC103161792",
+    subtitle = ""
+  )
+chx_plot$layers <- c(geom_bar(stat = "identity", position = "identity"), chx_plot$layers)
+chx_plot + theme(legend.position = "none")
 
-single_ouORF_codon_te_ecdf
-#ggsave(plot= single_ouORF_codon_te_ecdf, filename= paste(results_dir,"Figure_3.3_G.png", sep=""), width = 3, height = 3, device='png', dpi=700)
+ggsave(filename = paste(results_dir, "Figure 3F.png", sep = ""), width = 6, height = 3, device = "png", dpi = 700)
 ```
-
-### RNA
-```{r}
-single_ouORF_codon_rna <- all_rna_data %>%
-  mutate(class2 = case_when(
-    num_ouORFs ==1 & is.na(num_uORFs) & `Start codon.ouORF` == "ATG" ~"AUG",
-    num_ouORFs ==1 & is.na(num_uORFs) & `Start codon.ouORF` == "CTG" ~"CUG",
-    num_ouORFs ==1 & is.na(num_uORFs) & `Start codon.ouORF` == "GTG" ~"GUG",
-    num_ouORFs ==1 & is.na(num_uORFs) & `Start codon.ouORF` == "TTG" ~"UUG",
-    is.na(num_ouORFs) & is.na(num_ouORFs) & tid %in% control_transcripts ~"0"
-  )) %>%
-  filter(!is.na(class2)) 
-
-wilcox_test_ATG_ouORF_data <-single_ouORF_codon_rna %>%
-  filter(class2 == "AUG" | class2 == "0") 
-
-wilcox_test_ATG_ouORF <- wilcox.test(av_all ~ class2, data = wilcox_test_ATG_ouORF_data,
-                   exact = FALSE )
-
-wilcox_test_CTG_ouORF_data <-single_ouORF_codon_rna %>%
-  filter(class2 == "CUG" | class2 == "0") 
-
-wilcox_test_CTG_ouORF <- wilcox.test(av_all ~ class2, data = wilcox_test_CTG_ouORF_data,
-                   exact = FALSE )
-
-wilcox_test_GTG_ouORF_data <-single_ouORF_codon_rna %>%
-  filter(class2 == "GUG" | class2 == "0") 
-
-wilcox_test_GTG_ouORF <- wilcox.test(av_all ~ class2, data = wilcox_test_GTG_ouORF_data,
-                   exact = FALSE )
-
-wilcox_test_TTG_ouORF_data <-single_ouORF_codon_rna %>%
-  filter(class2 == "UUG" | class2 == "0") 
-
-wilcox_test_TTG_ouORF <- wilcox.test(av_all ~ class2, data = wilcox_test_TTG_ouORF_data,
-                   exact = FALSE )
-
-orf_stats <- data.frame(Key=c("","","","",""),
-                        N=c(
-                          table(single_ouORF_codon_rna$class2)[1],
-                           table(single_ouORF_codon_rna$class2)[2],
-                           table(single_ouORF_codon_rna$class2)[3],
-                           table(single_ouORF_codon_rna$class2)[4],
-                           table(single_ouORF_codon_rna$class2)[5]),
-                        p=c("",
-                           signif(wilcox_test_ATG_ouORF$p.value,2),
-                            signif(wilcox_test_CTG_ouORF$p.value,2),
-                            signif(wilcox_test_GTG_ouORF$p.value,2),
-                           signif(wilcox_test_TTG_ouORF$p.value,2)
-                            ))
-
-orf_stat_table <- tableGrob(orf_stats, theme = ttheme_gtplain(base_size = 6, padding = unit(c(3, 1), "mm")))
-
-find_cell <- function(table, row, col, name="core-fg"){
-  l <- table$layout
-  which(l$t==row & l$l==col & l$name==name)
-}
-
-ind <- find_cell(orf_stat_table, 2, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#DCE319FF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 3, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#73D055FF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 4, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#20A387FF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 5, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#33638DFF",col="white", lwd=5) 
-ind <- find_cell(orf_stat_table, 6, 2, "core-bg")
-orf_stat_table$grobs[ind][[1]][["gp"]] <- gpar(fill="#440154FF",col="white", lwd=5) 
-
-single_ouORF_codon_rna_ecdf <- single_ouORF_codon_rna %>%
-  ggplot(aes(x=log2(av_all), color=class2)) +
-   stat_ecdf(geom="smooth", se=F, size=0.5) + 
-    xlim(0,4) +
-  theme_bw() +
-    theme(legend.position = "none") +
-  scale_color_manual(values=c("#DCE319FF","#73D055FF","#20A387FF","#33638DFF","#440154FF")) +
-  labs(color="", y="Cumulative proportion", x=expression("RNA abundance RPKM (Log"[2]  * ")")) + 
-  theme(legend.position = "none" ) + 
-  annotation_custom(orf_stat_table, xmin = 0.53, xmax = 0.53, ymin = 0.87, ymax = 0.95)
-single_ouORF_codon_rna_ecdf
-#ggsave(plot= single_ouORF_codon_rna_ecdf, filename= paste(results_dir,"Figure_3.3_G.png", sep=""), width = 3, height = 3, device='png', dpi=700)
-```
-
-# Make manuscript figures
-## Figure 4
-```{r}
-figure4 <- ggarrange(uorf_per_transcript_plot,
-                         ggplot()+theme_void(),
-                         uORF_te_density_plot, 
-                         ggplot()+theme_void(),
-                         single_uORF_codon_te_ecdf,
-                         ggplot()+theme_void(),
-                          ggplot()+theme_void(),
-                          ggplot()+theme_void(),
-                         ggplot()+theme_void(),
-                          ggplot()+theme_void(),
-                         ouorf_per_transcript_plot,
-                         ggplot()+theme_void(),
-                         ouORF_te_density_plot, 
-                         ggplot()+theme_void(),
-                         single_ouORF_codon_te_ecdf,
-                         ncol=5, nrow = 3, widths = c(1,0.05,1,0.05,1), heights = c(1,0.05,1))
-figure4
-ggsave(plot=figure4, filename= paste(results_dir,"Figure 4.png", sep=""), width = 9, height = 6, device='png', dpi=700)
-```
-## Figure S5
-
-```{r}
-figure_s5 <- ggarrange(uORF_rna_density_plot, 
-                         ggplot()+theme_void(),
-                         single_uORF_codon_rna_ecdf,
-                         ggplot()+theme_void(),
-                          ggplot()+theme_void(),
-                          ggplot()+theme_void(),
-                         ouORF_rna_density_plot, 
-                         ggplot()+theme_void(),
-                         single_ouORF_codon_rna_ecdf,
-                         ncol=3, nrow = 3, widths = c(1,0.05,1), heights = c(1,0.05,1))
-figure_s5
-ggsave(plot= figure_s5, filename= paste(results_dir,"Figure_S5.png", sep=""), width = 9, height = 6, device='png', dpi=700)
-```
-
-## Figure S6
-
-```{r}
-figure_s6 <- ggarrange(single_atg_uorf_plot_te,
-                         ggplot()+theme_void(),
-                         single_atg_uorf_plot_rna,
-                         ncol=3,  widths = c(1,0.05,1))
-
-figure_s6
-ggsave(plot= figure_s6, filename= paste(results_dir,"Figure_S6.png", sep=""), width = 6, height = 3, device='png', dpi=700)
-```
-

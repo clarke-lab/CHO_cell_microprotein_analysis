@@ -1,684 +1,258 @@
 ---
 title: "Section 2.4 Results"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
+# Detection of host cell microprotein contamination in adalimumab and trastuzamab drug products
 
-# Prepare for analysis
-```{r message=FALSE, warning=FALSE, include=FALSE}
+## Prepare for analysis
+### Load libraries & functions
+
+```{r include=FALSE}
 package_list <- c(
-  "tidyverse", "DESeq2", "writexl", "ggpubr",
-  "ggthemes", "viridis", "patchwork", "WebGestaltR", "fuzzyjoin",
-  "GenomicFeatures", "wiggleplotr", "readr", "heatmaply", "ggvenn", "data.table", "ggrepel"
+"tidyverse","readxl","viridis","gridExtra","ggpmisc", "writexl", "cowplot"
 )
 
 lapply(package_list, require, character.only = TRUE)
+```
 
-results_dir <- "/mnt/HDD2/colin/ribosome_footprint_profiling/results/section2.4/"
+### Create results directory
+```{r include=FALSE}
+results_dir <- "../section2.4/"
 if (!dir.exists(results_dir)) {
   dir.create(results_dir, recursive = TRUE)
 }
-
-root_dir <- c("/mnt/HDD2/colin/ribosome_footprint_profiling/")
 ```
 
-## Load DESeq2 output
-```{r}
-load(file = "../section2.4/results.2.4.RData")
+### Import the ORFRATER results
+```{r eval=FALSE, include=FALSE}
+load("../section2.2/results_2_2.RData")
 ```
 
-## QC Heatmap
-```{r}
-vsd <- vst(dds_te, blind = FALSE)
-sampleDists <- dist(t(assay(vsd)))
+### Load the HCP MS data
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# PXD019668 Bevacizumab
+bev_dp <- read_excel("../../data/HCP MS identifications/PXD019668 Bevacizumab.xlsx") %>%
+  filter(!grepl("Confidence|High", Accession))
 
-sampleDistMatrix <- as.matrix(sampleDists)
+# PXD019668 Nivolumab
+niv_dp <- read_excel("../../data/HCP MS identifications/PXD019668 Nivolumab.xlsx") %>%
+  filter(!grepl("Confidence|High", Accession))
 
-deseq_sample_heatmap <- ggheatmap(sampleDistMatrix)
-ggsave(plot = deseq_sample_heatmap, filename = paste(results_dir, "Figure_S7.png", sep = ""), width = 8, height = 8, device = "png", dpi = 700)
+# PXD019668 Trastuzumab
+tras_dp <- read_excel("../../data/HCP MS identifications/PXD019668 Trastuzumab.xlsx") %>%
+  filter(!grepl("Confidence|High", Accession))
+
+# PXD019668 Adalimumab
+ada_dp_pride <- read_excel("../../data/HCP MS identifications/PXD019668 Adalimumab.xlsx") %>%
+  filter(!grepl("Confidence|High", Accession))
+
+# NIBRT Adalimumab
+ada_dp_nibrt <- read_excel("../../data/HCP MS identifications/NIBRT Adalimumab.xlsx") %>%
+  filter(!grepl("Confidence|High", Accession))
 ```
 
-### Set thresholds 
-Set thresholds to define differential expression
+# Analysis
+## Filter identifications
 ```{r}
-fold_change_threshold <- 1.5
-pval_threshold <- 0.05
-base_mean_threshold <- 0
-average_counts <- 20
-```
-
-
-
-## RNA-seq
-Volcano plot for RNA-seq
-```{r}
-
-res_rnaseq_smorf <- res_rnaseq %>%
-  as_tibble(rownames = "geneid") %>%
-  filter(geneid %in% smorf_ids$`ORF-RATER name`) 
-
-res_rnaseq_canonical <- res_rnaseq %>%
-  as_tibble(rownames = "geneid") %>%
-  filter(!str_detect(geneid, "NR|XR")) 
-  
- res_rnaseq <- bind_rows(res_rnaseq_smorf, res_rnaseq_canonical)
-  
- res_rnaseq %>%
-   #filter(str_detect(geneid, "NR|XR")) %>%
- 
-  dplyr::filter(abs(log2FoldChange) >= log2(fold_change_threshold) & padj < pval_threshold & baseMean >= 0)   %>%
-  summarise(all=n(),
-            up= sum(log2FoldChange >0),
-            down=sum(log2FoldChange <0))
-
-# volcano plot
-rnaseq_volcano_plot_data <- res_rnaseq %>%
- #filter(!str_detect(geneid, "NR|XR")) %>%
-  # remove any NCBI annotated non-coding RNAs from the results
-  drop_na(padj) %>%
-  mutate(diff_rnaseq = case_when(
-    log2FoldChange >= log2(fold_change_threshold) & padj < pval_threshold & baseMean >= 0 ~ "Up",
-    log2FoldChange <= -log2(fold_change_threshold) & padj < pval_threshold & baseMean >= 0 ~ "Down",
-    TRUE ~ "No change"
+# PXD019668 Bevacizumab
+bev_dp_class <- bev_dp %>%
+  mutate(prot_class = case_when(
+    !grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) >= 100 & as.numeric(`# Unique Peptides`) > 1 ~ "Uniprot",
+    grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) >= 100 & as.numeric(`# Unique Peptides`) > 1 ~ "Proteoform",
+    grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) < 100 ~ "Micropeptide",
+    TRUE ~ "Not detected"
   )) %>%
-  mutate(type = case_when(
-    geneid %in% smorf_ids$`ORF-RATER name` & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold) ~ "sORF" ,
-    !geneid %in% smorf_ids$`ORF-RATER name` & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold) ~ "Canonical" ,
-    TRUE ~ "Non DE"
+  filter(prot_class != "Not detected")
+
+write_xlsx(bev_dp_class, path = paste0(results_dir,"Table_S4A.xlsx"))
+
+# PXD019668 Nivolumab
+niv_dp_class <- niv_dp %>%
+  mutate(prot_class = case_when(
+    !grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) >= 100 & as.numeric(`# Unique Peptides`) > 1 ~ "Uniprot",
+    grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) >= 100 & as.numeric(`# Unique Peptides`) > 1 ~ "Proteoform",
+    grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) < 100 ~ "Micropeptide",
+    TRUE ~ "Not detected"
   )) %>%
-  mutate(protein_alpha = case_when(grepl("XR_|XM_", geneid) & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold)  ~ 1,
-                                   !grepl("XR_|XM_", geneid) & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold)  ~ 0.5,
-                                padj >=pval_threshold | abs(log2FoldChange) < log2(fold_change_threshold)  ~ 0.1)) %>%
-  mutate(protein_size = case_when(grepl("XR_|XM_", geneid) & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold)  ~ 1,
-                                   !grepl("XR_|XM_", geneid) & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold)  ~ 0.3,
-                                padj >=pval_threshold | abs(log2FoldChange) < log2(fold_change_threshold)  ~ 0.1)) %>%
-  arrange(type)
+  filter(prot_class != "Not detected")
 
-rnaseq_volcano_plot <- rnaseq_volcano_plot_data %>%
-  ggplot(aes(x = log2FoldChange, y = -log10(padj), color = type)) +
-  geom_point( alpha=rnaseq_volcano_plot_data$protein_alpha, size=rnaseq_volcano_plot_data$protein_size) +
-  geom_vline(xintercept = c(log2(fold_change_threshold), -log2(fold_change_threshold)), linetype = 11, size = 0.2) +
-  geom_hline(yintercept = -log10(pval_threshold), linetype = 11, size = 0.2) +
-  labs(x = "Log"[2] ~ "mRNA FC (TS/NTS)", title = "RNA-seq", color = "") +
-  theme_minimal() +
-  xlim(-3.5, 6.5) +
-   
-  scale_color_manual(values = c( "#CC6677","#999999","#035968" )) +
-  theme_bw() +
-  guides(color = guide_legend(override.aes = list(size = 3)))
+write_xlsx(niv_dp_class, path = paste0(results_dir,"Table_S4B.xlsx"))
 
+# PXD019668 Trastuzumab
+tras_dp_class <- tras_dp %>%
+  mutate(prot_class = case_when(
+    !grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) >= 100 & as.numeric(`# Unique Peptides`) > 1 ~ "Uniprot",
+    grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) >= 100 & as.numeric(`# Unique Peptides`) > 1 ~ "Proteoform",
+    grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) < 100 ~ "Micropeptide",
+    TRUE ~ "Not detected"
+  )) %>%
+  filter(prot_class != "Not detected")
+
+write_xlsx(tras_dp_class, path = paste0(results_dir,"Table_S4C.xlsx"))
+
+# PXD019668 Adalimumab
+ada_dp_pride_class <- ada_dp_pride %>%
+  mutate(prot_class = case_when(
+    !grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) >= 100 & as.numeric(`# Unique Peptides`) > 1 ~ "Uniprot",
+    grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) >= 100 & as.numeric(`# Unique Peptides`) > 1 ~ "Proteoform",
+    grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) < 100 ~ "Micropeptide",
+    TRUE ~ "Not detected"
+  )) %>%
+  filter(prot_class != "Not detected")
+
+write_xlsx(ada_dp_pride_class, path = paste0(results_dir,"Table_S4E.xlsx"))
+
+# NIBRT Adalimumab
+ada_dp_nibrt_class <- ada_dp_nibrt %>%
+  mutate(prot_class = case_when(
+    !grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) >= 100 & as.numeric(`# Unique Peptides`) > 1 ~ "Uniprot",
+    grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) >= 100 & as.numeric(`# Unique Peptides`) > 1 ~ "Proteoform",
+    grepl("XR_|XM_", Accession) & as.numeric(`# AAs`) < 100 ~ "Micropeptide",
+    TRUE ~ "Not detected"
+  )) %>%
+  filter(prot_class != "Not detected")
+write_xlsx(ada_dp_nibrt_class, path = paste0(results_dir,"Table_S4E.xlsx"))
 ```
 
-## RiboSeq
-Volcano plot
+## HCP identificaiton barplot
 ```{r}
-
-res_riboseq_smorf <- res_riboseq %>%
-  as_tibble(rownames = "geneid") %>%
-  filter(geneid %in% smorf_ids$`ORF-RATER name`) 
-
-res_riboseq_canonical <- res_riboseq %>%
-  as_tibble(rownames = "geneid") %>%
-  filter(!str_detect(geneid, "NR|XR")) 
-  
- res_riboseq <- bind_rows(res_riboseq_smorf, res_riboseq_canonical)
-  
- res_riboseq %>%
-   filter(str_detect(geneid, "NR|XR")) %>%
- 
-  dplyr::filter(abs(log2FoldChange) >= log2(fold_change_threshold) & padj < pval_threshold & baseMean >= 0)   %>%
-  summarise(all=n(),
-            up= sum(log2FoldChange >0),
-            down=sum(log2FoldChange <0))
-
-# volcano plot
-riboseq_volcano_plot_data <- res_riboseq %>%
- #filter(!str_detect(geneid, "NR|XR")) %>%
-  # remove any NCBI annotated non-coding RNAs from the results
-  drop_na(padj) %>%
-  mutate(diff_rnaseq = case_when(
-    log2FoldChange >= log2(fold_change_threshold) & padj < pval_threshold & baseMean >= 0 ~ "Up",
-    log2FoldChange <= -log2(fold_change_threshold) & padj < pval_threshold & baseMean >= 0 ~ "Down",
-    TRUE ~ "No change"
-  )) %>%
-  mutate(type = case_when(
-    geneid %in% smorf_ids$`ORF-RATER name` & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold) ~ "sORF" ,
-    !geneid %in% smorf_ids$`ORF-RATER name` & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold) ~ "Canonical" ,
-    TRUE ~ "Non DE"
-  )) %>%
-  mutate(protein_alpha = case_when(grepl("XR_|XM_", geneid) & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold)  ~ 1,
-                                   !grepl("XR_|XM_", geneid) & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold)  ~ 0.5,
-                                padj >=pval_threshold | abs(log2FoldChange) < log2(fold_change_threshold)  ~ 0.1)) %>%
-  mutate(protein_size = case_when(grepl("XR_|XM_", geneid) & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold)  ~ 1,
-                                   !grepl("XR_|XM_", geneid) & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold)  ~ 0.3,
-                                padj >=pval_threshold | abs(log2FoldChange) < log2(fold_change_threshold)  ~ 0.1)) %>%
-  arrange(type)
-
-riboseq_volcano_plot <- riboseq_volcano_plot_data %>%
-  ggplot(aes(x = log2FoldChange, y = -log10(padj), color = type)) +
-  geom_point( alpha=riboseq_volcano_plot_data$protein_alpha, size=riboseq_volcano_plot_data$protein_size) +
-  geom_vline(xintercept = c(log2(fold_change_threshold), -log2(fold_change_threshold)), linetype = 11, size = 0.2) +
-  geom_hline(yintercept = -log10(pval_threshold), linetype = 11, size = 0.2) +
-  labs(x = "Log"[2] ~ "RPF FC (TS/NTS)", title = "Ribo-seq", color = "") +
-  theme_minimal() +
-  xlim(-3.5, 8) +
-  scale_color_manual(values = c( "#CC6677","#999999","#035968" )) +
-  theme_bw() +
-  guides(color = guide_legend(override.aes = list(size = 3)))
-
-range(res_riboseq$log2FoldChange)
-```
-
-# Compare RNA-seq and Ribo-seq DE
-```{r}
-RNASeq_up_canonical <- sig_res_rnaseq %>%
-   filter(!str_detect(Plastid_ID, "NR|XR")) %>%
-  filter(log2FoldChange > 0) %>%
-  dplyr::select(Plastid_ID)
-
-RNASeq_up_smorf <- sig_res_rnaseq %>%
-   filter(Plastid_ID %in% smorf_ids$`ORF-RATER name`) %>%
-  filter(log2FoldChange > 0) %>%
-  dplyr::select(Plastid_ID)
-
-
-RiboSeq_up_canonical <- sig_res_riboseq %>%
-  filter(!str_detect(Plastid_ID, "NR|XR")) %>%
-  filter(log2FoldChange > 0) %>%
-  dplyr::select(Plastid_ID)
-
-RiboSeq_up_smorf <- sig_res_riboseq %>%
-   filter(Plastid_ID %in% smorf_ids$`ORF-RATER name`) %>%
-  filter(log2FoldChange > 0) %>%
-  dplyr::select(Plastid_ID)
-
-RNASeq_up <- bind_rows(RNASeq_up_smorf, RNASeq_up_canonical)
-RiboSeq_up <- bind_rows(RiboSeq_up_smorf, RiboSeq_up_canonical)
-
-RNASeq_down_canonical <- sig_res_rnaseq %>%
-  filter(!str_detect(Plastid_ID, "NR|XR")) %>%
-  filter(log2FoldChange < 0) %>%
-  dplyr::select(Plastid_ID)
-
-RNASeq_down_smorf <- sig_res_rnaseq %>%
-   filter(Plastid_ID %in% smorf_ids$`ORF-RATER name`) %>%
-  filter(log2FoldChange < 0) %>%
-  dplyr::select(Plastid_ID)
-
-RiboSeq_down_canonical <- sig_res_riboseq %>%
-  filter(!str_detect(Plastid_ID, "NR|XR")) %>%
-  filter(log2FoldChange < 0) %>%
-  dplyr::select(Plastid_ID)
-
-RiboSeq_down_smorf <- sig_res_riboseq %>%
-   filter(Plastid_ID %in% smorf_ids$`ORF-RATER name`) %>%
-  filter(log2FoldChange < 0) %>%
-  dplyr::select(Plastid_ID)
-
-RNASeq_down <- bind_rows(RNASeq_down_smorf, RNASeq_down_canonical)
-RiboSeq_down <- bind_rows(RiboSeq_down_smorf, RiboSeq_down_canonical)
-
-dim(RiboSeq_down_canonical)[1] + dim(RiboSeq_up_canonical)[1] 
-dim(RiboSeq_down_smorf)[1] + dim(RiboSeq_up_smorf)[1]
-
-paste0(length(intersect(RiboSeq_up$Plastid_ID, RNASeq_up$Plastid_ID)), " increase in both data types")
-paste0(length(intersect(RiboSeq_down$Plastid_ID, RNASeq_down$Plastid_ID)), " decrease in both data types")
-```
-
-## Venn diagram
-```{r}
-de_list <- list(
-  `RNA\nIncrease` = RNASeq_up$Plastid_ID,
-  `RPF\nIncrease` = RiboSeq_up$Plastid_ID,
-  `RNA\nDecrease` = RNASeq_down$Plastid_ID,
-  `RPF\nDecrease` = RiboSeq_down$Plastid_ID
+hcp_bar_plot_data <- bind_rows(
+  data.frame(sample = "Traztuzumab PXD019668", table(tras_dp_class$prot_class)),
+  data.frame(sample = "Nivolumab PXD019668", table(niv_dp_class$prot_class)),
+  data.frame(sample = "Bevacizumab PXD019668", table(bev_dp_class$prot_class)),
+  data.frame(sample = "Adalimumab PXD019668", table(ada_dp_pride_class$prot_class)),
+  data.frame(sample = "Adalimumab NIBRT", table(ada_dp_nibrt_class$prot_class))
 )
 
-de_comparison <- ggvenn(
-  de_list,
-  fill_color = c("#0073C2FF", "#EFC000FF", "#868686FF", "#CD534CFF"),
-  stroke_size = 0.5, set_name_size = 4
-) +
-  scale_fill_viridis(discrete = T)
-```
-
-## Figure S8
-```{r fig.height=8}
-combined_volcano <- rnaseq_volcano_plot + riboseq_volcano_plot + plot_layout(guides = "collect",) + guides(color = guide_legend(override.aes = list(size = 3)))
-
-volcano_venn <- combined_volcano / de_comparison + plot_layout(heights = unit(c(5, 1), c("cm", "null")))
-
-volcano_venn
-ggsave(plot = volcano_venn, filename = paste(results_dir, "Figure_S8.png", sep = ""), width = 9, height = 9, device = "png", dpi = 700)
-```
-
-
-## Correlated RNA and RPF fold changes
-```{r}
-# agreement between ribo and rna
-aggreement_changes <- c(intersect(RNASeq_up$Plastid_ID, RiboSeq_up$Plastid_ID), intersect(RNASeq_down$Plastid_ID, RiboSeq_down$Plastid_ID))
-
-changing_both <- sig_res_riboseq %>%
-  filter(Plastid_ID %in% aggreement_changes) %>%
-  filter(!str_detect(Plastid_ID, "NR|XR"))
-
-riboseq_cor_rnaseq_volcano_plot_data <- res_riboseq %>%
-  #as_tibble(rownames = "geneid") %>%
-  #filter(!str_detect(geneid, "NR|XR")) %>%
-  drop_na(padj) %>%
-  mutate(diff_ribo = case_when(
-    log2FoldChange >= log2(fold_change_threshold) & padj < pval_threshold & baseMean > base_mean_threshold & geneid %in% aggreement_changes ~ "Up",
-    log2FoldChange <= -log2(fold_change_threshold) & padj < pval_threshold & baseMean > base_mean_threshold & geneid %in% aggreement_changes ~ "Down",
-    TRUE ~ "No change"
-  )) %>%
-  mutate(type = case_when(
-    geneid %in% smorf_ids$`ORF-RATER name` & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold) ~ "sORF" ,
-    !geneid %in% smorf_ids$`ORF-RATER name` & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold) ~ "Canonical" ,
-    TRUE ~ "Non DE"
-  )) %>%
-  mutate(protein_alpha = case_when(grepl("XR_|XM_", geneid) & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold)  ~ 1,
-                                   !grepl("XR_|XM_", geneid) & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold)  ~ 0.5,
-                                padj >=pval_threshold | abs(log2FoldChange) < log2(fold_change_threshold)  ~ 0.1)) %>%
-  mutate(protein_size = case_when(grepl("XR_|XM_", geneid) & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold)  ~ 1,
-                                   !grepl("XR_|XM_", geneid) & padj < pval_threshold & abs(log2FoldChange) >= log2(fold_change_threshold)  ~ 0.3,
-                                padj >=pval_threshold | abs(log2FoldChange) < log2(fold_change_threshold)  ~ 0.1)) %>%
-  arrange(type)
-  
- riboseq_cor_rnaseq_volcano_plot <- riboseq_cor_rnaseq_volcano_plot_data %>% 
-  ggplot(aes(x = log2FoldChange, y = -log10(padj), color = type)) +
-  geom_point(size = riboseq_cor_rnaseq_volcano_plot_data$protein_size, alpha=riboseq_cor_rnaseq_volcano_plot_data$protein_alpha) +
-  labs(x = expression("Log"[2] ~ "RPF FC (TS/NTS)"), color = "") +
+hcp_bar_plot <- hcp_bar_plot_data %>%
+  ggplot(aes(x = sample, fill = factor(Var1, levels = c("Micropeptide", "Proteoform", "Uniprot")), y = Freq)) +
+  geom_bar(stat = "identity") +
   theme_bw() +
-  geom_vline(xintercept = c(log2(fold_change_threshold), -log2(fold_change_threshold)), linetype = 11, size = 0.2) +
-  geom_hline(yintercept = -log10(pval_threshold), linetype = 11, size = 0.2) +
-  xlim(-3.5, 8) +
-  scale_color_manual(values = c("#CC6677","#999999","#035968")) +
-  guides(color = guide_legend(override.aes = list(size = 3))) +
-  theme(legend.position = "right")
-range(riboseq_cor_rnaseq_volcano_plot$log2FoldChange)
+  theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1)) +
+  scale_fill_viridis(discrete = T, direction = -1) +
+  labs(x = "", y = "# proteins/proteoforms", fill = "") +
+  coord_flip()
+
+hcp_bar_plot
+ggsave(hcp_bar_plot, filename = paste0(results_dir,"Figure 4C.png"), device = "png", dpi = 700, width = 8, height = 4)
 ```
 
-# Translation Efficency
-Here genes that are altered at the level of translation are identified. Only those genes with 10 counts in both the riboseq and rnaseq are included in the analysis
-
-## Diff TE scatter plot
+## Merge MS identifications with ORF-RATER
 ```{r}
-res_te %>%
-  as_tibble(rownames = "geneid") %>%
-  #filter(!str_detect(geneid, "NR|XR")) %>%
-  dplyr::filter(abs(log2FoldChange) >= log2(fold_change_threshold) & padj < pval_threshold & baseMean >= 0) %>%
-  summarise(all=n(),
-            up= sum(log2FoldChange >0),
-            down=sum(log2FoldChange <0))
+# PXD019668 Trastuzumab
+tras_dp_beck_smorf <- table_s3 %>%
+  mutate(Accession = `ORF-RATER name`) %>%
+  left_join(tras_dp, by = "Accession") %>%
+  drop_na(Description) %>%
+  filter(`Length (AAs)` <= 100) %>%
+  mutate(Source = "PXD019668", mAb = "Trastuzumab") %>%
+  select(`ORF-RATER name`, mAb, Source, `ORF type`, `Associated Gene symbol`, `Start codon`, `Length (AAs)`, `Coverage [%]`, `# Peptides`)
 
-res_rnaseq_tib <- res_rnaseq %>%
-  #as_tibble(rownames = "geneid") %>%
-  #filter(!str_detect(geneid, "XR|NR")) %>%
-  dplyr::select(geneid, log2FoldChange, padj) %>%
-  mutate("Plastid_ID" = geneid)
+# PXD019668 Adalimumab
+ada_dp_pride_smorf <- table_s3 %>%
+  mutate(Accession = `ORF-RATER name`) %>%
+  left_join(ada_dp_pride, by = "Accession") %>%
+  drop_na(Description) %>%
+  filter(`Length (AAs)` <= 100) %>%
+  mutate(Source = "PXD019668", mAb = "Adalimumab") %>%
+  select(`ORF-RATER name`, mAb, Source, `ORF type`, `Associated Gene symbol`, `Start codon`, `Length (AAs)`, `Coverage [%]`, `# Peptides`)
 
-res_riboseq_tib <- res_riboseq %>%
-  #as_tibble(rownames = "geneid") %>%
-  #filter(!str_detect(geneid, "XR|NR")) %>%
-  dplyr::select(geneid, log2FoldChange, padj) %>%
-  mutate("Plastid_ID" = geneid)
+# NIBRT Adalimumab
+ada_dp_nibrt_smorf <- table_s3 %>%
+  mutate(Accession = `ORF-RATER name`) %>%
+  left_join(ada_dp_nibrt, by = "Accession") %>%
+  drop_na(Description) %>%
+  filter(`Length (AAs)` <= 100) %>%
+  mutate(Source = "NIBRT", mAb = "Adalimumab") %>%
+  select(`ORF-RATER name`, mAb, Source, `ORF type`, `Associated Gene symbol`, `Start codon`, `Length (AAs)`, `Coverage [%]`, `# Peptides`)
+```
 
-# merged the RNASeq and RiboSeq individual fold changes
-# indentify the the smORFs
-# Determine which genes are changing in the same direction
-combined_data <- left_join(res_rnaseq_tib, res_riboseq_tib, by = "Plastid_ID", suffix = c(".rnaseq", ".riboseq"))
-combined_data <- left_join(combined_data, sig_res_te, by = "Plastid_ID")
 
-diff_plot_data <- combined_data %>%
-  #filter(!str_detect(Plastid_ID, "XR|NR")) %>% # only annotated PCGs
-  mutate(
-    sig_te = !is.na(log2FoldChange),
-    rpf_direction = sign(log2FoldChange),
-    direction_color = case_when(
-      sig_te == "TRUE" & rpf_direction > 0 & abs(log2FoldChange.rnaseq) < log2(fold_change_threshold) ~ "RPF only increase",
-      sig_te == "TRUE" & rpf_direction < 0 & abs(log2FoldChange.rnaseq) < log2(fold_change_threshold) ~ "RPF only decrease",
-      sig_te == "TRUE" & log2FoldChange.rnaseq >= log2(fold_change_threshold) & padj.rnaseq < pval_threshold &
-        log2FoldChange.riboseq >= log2(fold_change_threshold) & padj.riboseq < pval_threshold ~ "RPF and RNA increase",
-      sig_te == "TRUE" & log2FoldChange.rnaseq <= -log2(fold_change_threshold) & padj.rnaseq < pval_threshold &
-        log2FoldChange.riboseq <= -log2(fold_change_threshold) & padj.riboseq < pval_threshold ~ "RPF and RNA decrease",
-      TRUE ~ "No TE change"
-    )
+```{r}
+dp_smorf_table <- bind_rows(ada_dp_pride_smorf, ada_dp_nibrt_smorf, tras_dp_beck_smorf)
+
+dp_smorf_table <- dp_smorf_table %>%
+  rename(`Gene symbol` = `Associated Gene symbol`) %>%
+  select(-c(`Length (AAs)`))
+
+microprotein_dp_table <- tableGrob(dp_smorf_table, theme = ttheme_default(
+  base_size = 10, padding = unit(c(2, 2), "mm"),
+  core = list(
+    bg_params = list(fill = c("grey95", "grey90", "grey95", "grey90", "grey95", "#35968CFF", "grey95", "grey90", "grey95", "grey90", "grey95")),
+    fg_params = list(col = c("black", "black", "black", "black", "black", "white", "black", "black", "black", "black", "black"))
   )
+))
 
-diff_plot_data %>% filter(str_detect(Plastid_ID, "XR|NR"))
-  
+ggsave(microprotein_dp_table, filename = paste0(results_dir,"Figure 4D.png"), device = "png", dpi = 700, width = 20)
+```
 
-te_scatter_plot <- diff_plot_data %>%
-  arrange(direction_color) %>%
-  ggplot(aes(x = log2FoldChange.rnaseq, y = log2FoldChange.riboseq, color = direction_color, alpha = direction_color)) +
-  geom_point(size = 0.4) +
+## Plot mass spectra 
+```{r}
+Adalimumab_peptide_1 <- read_delim("../../data/mass_spectra/XR_003481490.2_407599334_59 aa peptide 1.txt",
+  "\t",
+  escape_double = FALSE, trim_ws = TRUE,
+  skip = 2
+)
+
+Adalimumab_peptide_1_plot <- Adalimumab_peptide_1 %>%
+  mutate(int = `Intensity [counts]` / 10^6) %>%
+  ggplot(aes(x = `m/z`, ymax = int, ymin = 0)) +
+  geom_linerange(color = "#d55e00") +
   theme_bw() +
-  scale_color_manual(values = c("grey", "#009E73", "#AA4499", "#56B4E9", "#D55E00")) +
-  scale_alpha_manual(values = c(0.2, 1, 1, 1, 1)) +
-  geom_vline(xintercept = log2(fold_change_threshold), linetype = 11, size = 0.2) +
-  geom_vline(xintercept = 0, size = 0.3) +
-  geom_vline(xintercept = -log2(fold_change_threshold), linetype = 11, size = 0.2) +
-  geom_hline(yintercept = log2(fold_change_threshold), linetype = 11, size = 0.2) +
-  geom_hline(yintercept = 0, size = 0.3) +
-  geom_hline(yintercept = -log2(fold_change_threshold), linetype = 11, size = 0.2) +
-  labs(x = expression("Log"[2] ~ "mRNA FC (TS/NTS)"), y = expression("Log"[2] ~ "RPF FC (TS/NTS)"), color = "", alpha = "") +
-  xlim(c(-4.5, 4.5)) +
-  ylim(c(-4.5, 4.5)) +
-  # theme(legend.position = "top") +
-  guides(color = guide_legend(override.aes = list(size = 3, alpha = 1)))
+  labs(y = "Intensity [counts] (10^6)") +
+  geom_text_npc(aes(npcx = 0.05, npcy = 0.95), label = "Xcorr=3.84", size = 4)
+Adalimumab_peptide_1_plot
 
-te_scatter_plot
-```
-## Combined Volcano and scatter
-```{r}
-fig_5_ab <- ggarrange(riboseq_cor_rnaseq_volcano_plot, ggplot() +
-  theme_void(), te_scatter_plot, ncol = 3, widths = c(1, 0.05, 1))
-fig_5_ab
-
-ggsave(plot = fig_5_ab, filename = paste(results_dir, "Figure_5_A_B.png", sep = ""), width = 11, height = 4, device = "png", dpi = 700)
-```
-## Write DE results to file
-Only protein coding genes are saved here
-
-```{r}
-# rnaseq protein coding
-pcg_sig_res_rnaseq <- sig_res_rnaseq %>%
-  filter(!str_detect(Plastid_ID, "XR|NR"))
-
-# riboseq protein coding
-pcg_sig_res_riboseq <- sig_res_riboseq %>%
-  filter(!str_detect(Plastid_ID, "XR|NR"))
-
-# te protein coding
-pcg_sig_res_te <- sig_res_te %>%
-  filter(!str_detect(Plastid_ID, "XR|NR"))
-
-fn <- paste(results_dir, "Table S4.xlsx",
-  sep = ""
+Adalimumab_peptide_2 <- read_delim("../../data/mass_spectra/XR_003481490.2_407599334_59 aa peptide 2.txt",
+  "\t",
+  escape_double = FALSE, trim_ws = TRUE,
+  skip = 2
 )
 
-suppressMessages(if (file.exists(fn)) {
-  file.remove(fn)
-})
-
-write_xlsx(list(
-  DE_RNASeq = pcg_sig_res_rnaseq,
-  DE_RiboSeq = pcg_sig_res_riboseq,
-  DTE = pcg_sig_res_te
-),
-path = fn,
-format_headers = TRUE
-)
-```
-
-
-# Enrichment Analysis
-
-```{r}
-enrichdir <- paste0(results_dir, "/enrichment_analysis/")
-suppressMessages(if (file.exists(enrichdir)) {
-  unlink(enrichdir)
-})
-if (!dir.exists(enrichdir)) {
-  dir.create(enrichdir)
-}
-
-gene_symbols_all <- changing_both$symbol # genes that are significantly different and in the same direction from RNA and RPF
-
-gene_symbols_te_only <- sig_res_te$symbol
-
-write(gene_symbols_te_only, file = paste0(enrichdir, "te_genes.txt"))
-write(gene_symbols_all, file = paste0(enrichdir, "all_genes.txt"))
-
-# listGeneSet(
-#     organism = "mmusculus",
-#    hostName = "http://www.webgestalt.org/",
-#   cache = NULL
-# )
-
-enrich_result <- WebGestaltRBatch(
-  enrichMethod = "ORA",
-  organism = "mmusculus",
-  enrichDatabase = c("geneontology_Biological_Process_noRedundant"),
-  enrichDatabaseType = "genesymbol",
-  interestGeneFolder = enrichdir,
-  interestGeneType = "genesymbol",
-  referenceSet = "genome",
-  minNum = 10,
-  maxNum = 500,
-  sigMethod = "fdr",
-  fdrMethod = "BH",
-  fdrThr = 0.05,
-  topThr = 10,
-  reportNum = 20,
-  perNum = 1000,
-  projectName = "Pseudotime",
-  isOutput = TRUE,
-  outputDirectory = enrichdir,
-  dagColor = "continuous",
-  setCoverNum = 10,
-  networkConstructionMethod = NULL,
-  neighborNum = 10,
-  highlightType = "Seeds",
-  highlightSeedNum = 10,
-  nThreads = 32
-)
-
-all_gene_enrichment <- enrich_result[[1]]$enrichResult[, c(1, 2, 4, 5, 7, 8, 9, 11)] %>%
-  mutate(type = "All genes")
-
-te_gene_enrichment <- enrich_result[[2]]$enrichResult[, c(1, 2, 4, 5, 7, 8, 9, 11)] %>%
-  mutate(type = "TE genes")
-
-fn <- paste(results_dir, "Table S5.xlsx",
-  sep = ""
-)
-
-suppressMessages(if (file.exists(fn)) {
-  file.remove(fn)
-})
-
-write_xlsx(list(
-  All_genes = all_gene_enrichment,
-  TE_genes = te_gene_enrichment
-),
-path = fn,
-format_headers = TRUE
-)
-```
-
-## Plot GO results
-```{r}
-enrichment_plot_te <- bind_rows(te_gene_enrichment) %>%
-  mutate(FDR = case_when(FDR == 0 ~ 2.2e-16, TRUE ~ FDR)) %>%
-  mutate(description = fct_reorder(description, enrichmentRatio)) %>%
-  ggplot(aes(x = enrichmentRatio, y = description, color = -log10(FDR), size = overlap)) +
-  geom_point() +
-  scale_color_viridis() +
+Adalimumab_peptide_2_plot <- Adalimumab_peptide_2 %>%
+  mutate(int = `Intensity [counts]` / 10^6) %>%
+  ggplot(aes(x = `m/z`, ymax = int, ymin = 0)) +
+  geom_linerange(color = "#0072b2") +
   theme_bw() +
-  labs(x = "Enrichment ratio", y = "", size = "Overlap")
+  labs(y = "Intensity [counts] (10^6)") +
+  geom_text_npc(aes(npcx = 0.05, npcy = 0.95), label = "Xcorr=2.64", size = 4)
+Adalimumab_peptide_2_plot
 
-
-enrichment_plot_all <- bind_rows(all_gene_enrichment[1:10, ]) %>%
-  mutate(go_process = paste(description)) %>%
-  mutate(FDR = case_when(FDR == 0 ~ 2.2e-16, TRUE ~ FDR)) %>%
-  mutate(go_process = fct_reorder(geneSet, enrichmentRatio)) %>%
-  ggplot(aes(x = enrichmentRatio, y = go_process, color = -log10(FDR), size = overlap, label = description)) +
-  geom_point() +
-  scale_color_viridis() +
-  theme_bw() +
-  labs(x = "Enrichment ratio", y = "", size = "Overlap") +
-  theme(axis.text.x = element_text(angle = 80, hjust = 1)) +
-  geom_text_repel(size = 3, color = "black", direction = "x")
-enrichment_plot_all
-
-
-ggsave(enrichment_plot_all, filename = paste(results_dir, "Figure_5C.png", sep = ""), width = 5, height = 5, device = "png", dpi = 700)
-```
-# DNA repair genes
-## Transation only change
-```{r}
-enriched_without_rnaseq_change <- sig_res_te %>%
-  filter(symbol %in% unlist(strsplit(enrich_result[[2]]$enrichResult$userId[1], split = ";"))) %>%
-  filter(!Plastid_ID %in% sig_res_rnaseq$Plastid_ID) %>%
-  arrange(-log2FoldChange)
-
-enriched_without_rnaseq_change
-```
-
-## Plot diff TE only
-```{r}
-goi <- enriched_without_rnaseq_change$Plastid_ID
-
-tcounts <- t(log2((counts(dds_te[goi, ], normalized = TRUE, replaced = FALSE) + .5))) %>%
-  merge(colData(dds_te), ., by = "row.names")
-
-dna_repair_boxplots <- bind_rows(
-  tcounts[tcounts$condition == "nts" & tcounts$assay == "riboseq", goi] /
-    tcounts[tcounts$condition == "nts" & tcounts$assay == "rnaseq", goi],
-  tcounts[tcounts$condition == "ts" & tcounts$assay == "riboseq", goi] /
-    tcounts[tcounts$condition == "ts" & tcounts$assay == "rnaseq", goi]
-) %>%
-  mutate(condition = toupper(tcounts$condition[1:8])) %>%
-  pivot_longer(cols = -condition) %>%
-  mutate(name = str_remove(name, "_1")) %>%
-  ggplot(aes(x = condition, y = value, fill = condition)) +
-  geom_boxplot() +
-  geom_point(size = 0.5) +
-  facet_wrap(~name, scales = "free_y") +
-  theme_bw() +
-  labs(x = "", y = expression("Log"[2] ~ "TE (TS/NTS)"), fill = "") +
-  scale_fill_manual(values = c("#D55E00", "#56B4E9")) +
-  theme(strip.text = element_text(face = "italic"), strip.background = element_blank())
-dna_repair_boxplots
-ggsave(dna_repair_boxplots, filename = paste(results_dir, "Figure_5D.png", sep = ""), width = 6, height = 6, device = "png", dpi = 700)
-```
-
-
-# Average coverage plots
-## TXDB Annotation
-```{r}
-cgr_txdb <- makeTxDbFromGFF("../../reference_genome/GCF_003668045.3_CriGri-PICRH-1.0_genomic.gff", format = "auto")
-
-cgr.transcripts <- transcripts(cgr_txdb)
-
-exons <- exonsBy(cgr_txdb, by = "tx", use.names = TRUE)
-cds <- cdsBy(cgr_txdb, by = "tx", use.names = TRUE)
-```
-
-## Bigwig import
-```{r}
-sample_data <- dplyr::data_frame(
-  sample_id = c(
-    "nts_r1_rna", "nts_r2_rna", "nts_r3_rna", "nts_r4_rna",
-    "ts_r1_rna", "ts_r2_rna", "ts_r3_rna", "ts_r4_rna",
-    "nts_r1_ribo", "nts_r2_ribo", "nts_r3_ribo", "nts_r4_ribo",
-    "ts_r1_ribo", "ts_r2_ribo", "ts_r3_ribo", "ts_r4_ribo",
-    "nts_r1_a", "nts_r2_a", "nts_r3_a", "nts_r4_a",
-    "ts_r1_a", "ts_r2_a", "ts_r3_a", "ts_r4_a"
-  ),
-  condition = factor(c(
-    "NTS", "NTS", "NTS", "NTS",
-    "TS", "TS", "TS", "TS",
-    "NTS", "NTS", "NTS", "NTS",
-    "TS", "TS", "TS", "TS",
-    "NTS", "NTS", "NTS", "NTS",
-    "TS", "TS", "TS", "TS"
-  ),
-  levels = c("TS", "NTS")
-  ),
-  type = factor(c(
-    "RNA", "RNA", "RNA", "RNA",
-    "RNA", "RNA", "RNA", "RNA",
-    "RPF full", "RPF full", "RPF full", "RPF full",
-    "RPF full", "RPF full", "RPF full", "RPF full",
-    "RPF A-site", "RPF A-site", "RPF A-site", "RPF A-site",
-    "RPF A-site", "RPF A-site", "RPF A-site", "RPF A-site"
-  ),
-  levels = c("RNA", "RPF full", "RPF A-site")
-  ),
-  scaling_factor = 1
+Adalimumab_peptide_3 <- read_delim("../../data/mass_spectra/XR_003481490.2_407599334_59 aa peptide 3.txt",
+  "\t",
+  escape_double = FALSE, trim_ws = TRUE,
+  skip = 2
 )
 
-sample_data <- sample_data %>%
-  dplyr::mutate(bigWig = c(
-    "../../alignment_tracks/individual/rnaseq/nts_r1.rnaseq_deseq.bw",
-    "../../alignment_tracks/individual/rnaseq/nts_r2.rnaseq_deseq.bw",
-    "../../alignment_tracks/individual/rnaseq/nts_r3.rnaseq_deseq.bw",
-    "../../alignment_tracks/individual/rnaseq/nts_r4.rnaseq_deseq.bw",
-    "../../alignment_tracks/individual/rnaseq/ts_r1.rnaseq_deseq.bw",
-    "../../alignment_tracks/individual/rnaseq/ts_r2.rnaseq_deseq.bw",
-    "../../alignment_tracks/individual/rnaseq/ts_r3.rnaseq_deseq.bw",
-    "../../alignment_tracks/individual/rnaseq/ts_r4.rnaseq_deseq.bw",
-    "../../alignment_tracks/individual/riboseq/nts_r1.chx_deseq.bw",
-    "../../alignment_tracks/individual/riboseq/nts_r2.chx_deseq.bw",
-    "../../alignment_tracks/individual/riboseq/nts_r3.chx_deseq.bw",
-    "../../alignment_tracks/individual/riboseq/nts_r4.chx_deseq.bw",
-    "../../alignment_tracks/individual/riboseq/ts_r1.chx_deseq.bw",
-    "../../alignment_tracks/individual/riboseq/ts_r2.chx_deseq.bw",
-    "../../alignment_tracks/individual/riboseq/ts_r3.chx_deseq.bw",
-    "../../alignment_tracks/individual/riboseq/ts_r4.chx_deseq.bw",
-    "../../alignment_tracks/individual/riboseq/nts_r1.chx_deseq_asite.bw",
-    "../../alignment_tracks/individual/riboseq/nts_r2.chx_deseq_asite.bw",
-    "../../alignment_tracks/individual/riboseq/nts_r3.chx_deseq_asite.bw",
-    "../../alignment_tracks/individual/riboseq/nts_r4.chx_deseq_asite.bw",
-    "../../alignment_tracks/individual/riboseq/ts_r1.chx_deseq_asite.bw",
-    "../../alignment_tracks/individual/riboseq/ts_r2.chx_deseq_asite.bw",
-    "../../alignment_tracks/individual/riboseq/ts_r3.chx_deseq_asite.bw",
-    "../../alignment_tracks/individual/riboseq/ts_r4.chx_deseq_asite.bw"
-  ))
-track_data <- dplyr::mutate(sample_data, track_id = condition, colour_group = type)
-```
+Adalimumab_peptide_3_plot <- Adalimumab_peptide_3 %>%
+  mutate(int = `Intensity [counts]` / 10^6) %>%
+  ggplot(aes(x = `m/z`, ymax = int, ymin = 0)) +
+  geom_linerange(color = "#009e73") +
+  theme_bw() +
+  labs(y = "Intensity [counts] (10^6)") +
+  geom_text_npc(aes(npcx = 0.05, npcy = 0.95), label = "Xcorr=2.55", size = 4)
+Adalimumab_peptide_3_plot
 
 
-## Plot Brca1 coverage
-```{r message=FALSE, warning=FALSE}
-selected_gene <- "Brca1"
-selected_transcript <- AnnotationDbi::select(cgr_txdb, selected_gene,
-  columns = c("TXNAME", "GENEID", "GENEID", "TXSTRAND"),
-  keytype = "GENEID"
-) %>%
-  mutate(TXSTRAND = ifelse(TXSTRAND == "+", 1, -1)) %>%
-  dplyr::filter(!str_detect(TXNAME, "XR")) %>%
-  dplyr::rename("gene_name" = GENEID, "transcript_id" = TXNAME, "strand" = TXSTRAND)
-
-plot_list <- plotCoverage(
-  exons[selected_transcript$transcript_id],
-  cds[selected_transcript$transcript_id],
-  track_data = track_data,
-  transcript_annotations = selected_transcript,
-  rescale_introns = TRUE,
-  mean_only = TRUE,
-  alpha = 0.5,
-  heights = c(2, 1),
-  coverage_type = "both",
-  fill_palette = c("grey", "#009E73", "black"),
-  plot_fraction = 1,
-  new_intron_length = 50,
-  return_subplots_list = T,
-  transcript_label = FALSE
+Adalimumab_peptide_4 <- read_delim("../../data/mass_spectra/XR_003481490.2_407599334_59 aa peptide 4.txt",
+  "\t",
+  escape_double = FALSE, trim_ws = TRUE,
+  skip = 2
 )
 
-coverage_track <- plot_list$coverage_plot +
-  scale_fill_manual(values = c("grey", "#009E73", "black")) +
-  scale_color_manual(values = c("grey", "#009E73", "black"), guide = FALSE) +
-  labs(title = selected_gene, y = "Mean scaled coverage", x = "", fill = "Data type", subtitle = c(expression("Log"[2] ~ "\u0394TE (TS/NTS) = -1.25 [padj=6.3" * "\u00D7" * 10^{
-    -14
-  } * "]"))) +
-  # theme(strip.position  plot.margin = unit(c(0,0,0,0), "cm")) +
-  theme(strip.background = element_rect(fill = "white"), legend.position = "right")
+Adalimumab_peptide_4_plot <- Adalimumab_peptide_4 %>%
+  mutate(int = `Intensity [counts]` / 10^6) %>%
+  ggplot(aes(x = `m/z`, ymax = int, ymin = 0)) +
+  geom_linerange(color = "#cc79a7") +
+  theme_bw() +
+  labs(y = "Intensity [counts] (10^6)") +
+  geom_text_npc(aes(npcx = 0.05, npcy = 0.95), label = "Xcorr=2.34", size = 4)
+Adalimumab_peptide_4_plot
 
-annotation_track <- plot_list$tx_structure +
-  scale_fill_manual(values = c("black", "grey")) +
-  scale_color_manual(values = c("grey", "grey"), guide = FALSE) +
-  labs(fill = "Feature", y = "", caption = sprintf(" \u27FB Direction of transcription")) +
-  scale_y_continuous(breaks = NULL) +
-  theme(strip.background = element_rect(fill = "white"), legend.position = "right")
-# theme(plot.margin = unit(c(0,0,0,0), "cm"))
-
-brca1_plot <- coverage_track / annotation_track +
-  plot_layout(heights = c(3.5, 1)) +
-  theme(strip.background = element_rect(fill = "white"))
-brca1_plot
-ggsave(brca1_plot, filename = paste(results_dir, "Figure_5E.png", sep = ""), width = 12, height = 6, device = "png", dpi = 700)
+spectra <- plot_grid(Adalimumab_peptide_1_plot, Adalimumab_peptide_2_plot, Adalimumab_peptide_3_plot, Adalimumab_peptide_4_plot, scale = 0.9, nrow = 2, ncol = 2)
+spectra 
+ggsave(plot = spectra, filename = paste0(results_dir,"Figure 4F.png", sep = ""), dpi = 700, device = "png", width = 15, height =10)
 ```
