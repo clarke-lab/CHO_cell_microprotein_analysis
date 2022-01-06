@@ -124,7 +124,7 @@ We have built a docker image with ORF-RATER and required packages to ensure futu
 
 ```bash
 # get docker image
-docker pull clarkelab/orfrater
+docker pull clarkelab/orfrater:final
 
 # run ORF-RATER
 ./scripts/identify_ORFs.sh
