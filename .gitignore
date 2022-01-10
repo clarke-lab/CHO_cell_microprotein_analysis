@@ -19,6 +19,7 @@ results/section2.3/*
 results/section2.4/*
 results/section2.5/*
 results/section2.6/*
+results/supp*
 results/r_scripts/*html
 results/r_scripts/*Rproj
 amino_acid_analysis
@@ -32,3 +33,6 @@ orf_lists
 proteomics_db
 results/r_scripts/read_length.txt
 results/r_scripts/*_files*
+.DS*
+results/r_scripts/*.tex
+results/r_scripts/*.log

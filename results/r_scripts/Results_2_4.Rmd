@@ -27,7 +27,7 @@ if (!dir.exists(results_dir)) {
 ```
 
 ### Import the ORFRATER results
-```{r eval=FALSE, include=FALSE}
+```{r}
 load("../section2.2/results_2_2.RData")
 ```
 
@@ -143,42 +143,42 @@ ggsave(hcp_bar_plot, filename = paste0(results_dir,"Figure 4C.png"), device = "p
 ## Merge MS identifications with ORF-RATER
 ```{r}
 # PXD019668 Trastuzumab
-tras_dp_beck_smorf <- table_s3 %>%
+tras_dp_beck_sorf <- table_s3 %>%
   mutate(Accession = `ORF-RATER name`) %>%
   left_join(tras_dp, by = "Accession") %>%
   drop_na(Description) %>%
-  filter(`Length (AAs)` <= 100) %>%
+  filter(`Length (AAs)` < 100) %>%
   mutate(Source = "PXD019668", mAb = "Trastuzumab") %>%
   select(`ORF-RATER name`, mAb, Source, `ORF type`, `Associated Gene symbol`, `Start codon`, `Length (AAs)`, `Coverage [%]`, `# Peptides`)
 
 # PXD019668 Adalimumab
-ada_dp_pride_smorf <- table_s3 %>%
+ada_dp_pride_sorf <- table_s3 %>%
   mutate(Accession = `ORF-RATER name`) %>%
   left_join(ada_dp_pride, by = "Accession") %>%
   drop_na(Description) %>%
-  filter(`Length (AAs)` <= 100) %>%
+  filter(`Length (AAs)` < 100) %>%
   mutate(Source = "PXD019668", mAb = "Adalimumab") %>%
   select(`ORF-RATER name`, mAb, Source, `ORF type`, `Associated Gene symbol`, `Start codon`, `Length (AAs)`, `Coverage [%]`, `# Peptides`)
 
 # NIBRT Adalimumab
-ada_dp_nibrt_smorf <- table_s3 %>%
+ada_dp_nibrt_sorf <- table_s3 %>%
   mutate(Accession = `ORF-RATER name`) %>%
   left_join(ada_dp_nibrt, by = "Accession") %>%
   drop_na(Description) %>%
-  filter(`Length (AAs)` <= 100) %>%
+  filter(`Length (AAs)` < 100) %>%
   mutate(Source = "NIBRT", mAb = "Adalimumab") %>%
   select(`ORF-RATER name`, mAb, Source, `ORF type`, `Associated Gene symbol`, `Start codon`, `Length (AAs)`, `Coverage [%]`, `# Peptides`)
 ```
 
 
 ```{r}
-dp_smorf_table <- bind_rows(ada_dp_pride_smorf, ada_dp_nibrt_smorf, tras_dp_beck_smorf)
+dp_sorf_table <- bind_rows(ada_dp_pride_sorf, ada_dp_nibrt_sorf, tras_dp_beck_sorf)
 
-dp_smorf_table <- dp_smorf_table %>%
+dp_sorf_table <- dp_sorf_table %>%
   rename(`Gene symbol` = `Associated Gene symbol`) %>%
   select(-c(`Length (AAs)`))
 
-microprotein_dp_table <- tableGrob(dp_smorf_table, theme = ttheme_default(
+microprotein_dp_table <- tableGrob(dp_sorf_table, theme = ttheme_default(
   base_size = 10, padding = unit(c(2, 2), "mm"),
   core = list(
     bg_params = list(fill = c("grey95", "grey90", "grey95", "grey90", "grey95", "#35968CFF", "grey95", "grey90", "grey95", "grey90", "grey95")),

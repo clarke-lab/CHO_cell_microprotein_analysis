@@ -152,8 +152,8 @@ table_s3 <-table_s3 %>%
     `Transcript stop position` =  tstop,
     `Chromosome` = chrom,
     `Strand` = strand.x,
-    `Genomic start position` = tcoord,
-    `Genomic stop position` =  tstop) %>%
+    `Genomic start position` = gcoord,
+    `Genomic stop position` =  gstop) %>%
   arrange(-`ORF-RATER score`)
 
 write_xlsx(list(ORFs = table_s3),
@@ -170,7 +170,7 @@ print("Outputting ORF lists for downstream analysis")
 print("--Amino acid analysis--")
 # annotated PCGs
 long_orfs <- table_s3 %>%
-  filter(`Length (AAs)` > 100) %>%
+  filter(`Length (AAs)` >= 100) %>%
   filter(`ORF type` == "Annotated") 
 write(long_orfs$`ORF-RATER name`, file=paste0("orf_lists/long_orfs_for_AA_freq.txt"))
 paste0(length(long_orfs$`ORF-RATER name`), 
@@ -180,7 +180,7 @@ paste0(length(long_orfs$`ORF-RATER name`),
 
 # non-coding RNA ORFs 
 new_lncrna_short_orfs <-table_s3 %>% 
-  filter(`Length (AAs)` <= 100) %>%
+  filter(`Length (AAs)` < 100) %>%
   filter(`ORF type` == "New") %>%
   filter(str_detect(`Transcript ID`, "XR|NR"))
 write(new_lncrna_short_orfs$`ORF-RATER name`, file="orf_lists/lncrna_short_orfs_for_AA_freq.txt")
@@ -191,7 +191,7 @@ paste0(length(new_lncrna_short_orfs$`ORF-RATER name`),
 
 # upstream short ORFs
 upstream_short_orfs <-table_s3 %>% 
-  filter(`Length (AAs)` <= 100) %>%
+  filter(`Length (AAs)` < 100) %>%
   filter(`ORF type` == "Upstream" | `ORF type` == "Start overlap") 
 
 write(upstream_short_orfs$`ORF-RATER name`, file="orf_lists/upstream_short_orfs_for_AA_freq.txt")
@@ -207,7 +207,7 @@ print("--Differential expression--")
 selected_new_for_de <- table_s3 %>% 
   filter(`ORF type` == "New") %>% 
   filter(str_detect(`ORF-RATER name`, "NR|XR")) %>%
-  #filter(AAlen >= 5 & AAlen <= 100) %>%
+  #filter(AAlen >= 5 & AAlen < 100) %>%
   group_by(`Transcript ID`) %>%
   top_n(`Length (AAs)`, n=1) 
 
