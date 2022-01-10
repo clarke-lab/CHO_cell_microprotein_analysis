@@ -63,32 +63,32 @@ ggsave(growth_rate_plot, filename = paste0(results_dir,"Figure 6A.png"), device 
 d4d7_full <- read_excel("../../data/CHOK1GS_D4_v_D7.xlsx",) %>%
   filter(!grepl("Confidence|High", Accession)) # filter out peptide level rows
 
-# select "uniprot" proteins > 100aa with 2 or more identifications
+# select "uniprot" proteins >= 100aa with 2 or more identifications
 d4d7_protein_uniprot_long <- d4d7_full %>%
   filter(!grepl("XR_|XM_", Accession)) %>% # remove proteoforms identified by ORF-RATER
   filter(as.numeric(`# AAs`) >= 100 & as.numeric(`# Peptides`) >= 2)
 
 paste0(dim(d4d7_protein_uniprot_long)[1], " standard uniprot proteins identified")
 
-# select "uniprot" proteins <= 100aa with 1 or more identifications
+# select "uniprot" proteins < 100aa with 1 or more identifications
 d4d7_protein_uniprot_short <- d4d7_full %>%
   filter(!grepl("XR_|XM_", Accession)) %>% # remove proteoforms identified by ORF-RATER
   filter(as.numeric(`# AAs`) < 100 & as.numeric(`# Peptides`) >= 1)
 paste0(dim(d4d7_protein_uniprot_short)[1], " uniprot proteins < 100aa identified")
 
-# select "orfrater" proteins > 100aa with 2 or more identifications
+# select "orfrater" proteins >= 100aa with 2 or more identifications
 d4d7_orfrater_long <- d4d7_full %>%
   filter(grepl("XR_|XM_", Accession)) %>%
   filter(as.numeric(`# AAs`) >= 100 & as.numeric(`# Peptides`) >= 2)
 
-paste0(dim(d4d7_orfrater_long)[1], " ORF-RATER identified proteoforms > 100aa")
+paste0(dim(d4d7_orfrater_long)[1], " ORF-RATER identified proteoforms >= 100aa")
 
-# select "orfrater" proteins <= 100aa with 1 or more identifications
+# select "orfrater" proteins < 100aa with 1 or more identifications
 d4d7_orfrater_short <- d4d7_full %>%
   filter(grepl("XR_|XM_", Accession)) %>%
   filter(as.numeric(`# AAs`) < 100 & as.numeric(`# Peptides`) >= 1)
 
-paste0(dim(d4d7_orfrater_short)[1], " ORR-RATER identified proteoforms  <= 100aa")
+paste0(dim(d4d7_orfrater_short)[1], " ORR-RATER identified proteoforms  < 100aa")
 
 sum(dim(d4d7_protein_uniprot_long)[1], dim(d4d7_protein_uniprot_short)[1], dim(d4d7_orfrater_long)[1], dim(d4d7_orfrater_short)[1])
 
