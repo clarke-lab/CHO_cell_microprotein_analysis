@@ -1,5 +1,7 @@
 # Found in translation: Microproteins are a new class of host cell impurity in mAb drug products  
 
+[![DOI](https://zenodo.org/badge/449655379.svg)](https://zenodo.org/badge/latestdoi/449655379)
+
 The code contained in this repositority enable the reproduction of the results of:
 
 Castro-Rivadeneyra *et. al* 2022. **Found in translation: Microproteins are a new class of host cell impurity in mAb drug products**
