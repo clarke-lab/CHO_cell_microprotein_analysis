@@ -1,4 +1,4 @@
-# Found in translation: Microproteins are a new class of host cell impurity in mAb drug products  
+# Annotation of the non-canonical translatome reveals that CHO cell microproteins are a new class of mAb drug product impurity  
 
 [![DOI](https://zenodo.org/badge/449655379.svg)](https://zenodo.org/badge/latestdoi/449655379)
 
@@ -13,7 +13,7 @@ The publication is freely availiable here: xxxxxxx&nbsp;
 Mass spectrometry (MS) has emerged as a powerful approach for the detection of Chinese hamster ovary (CHO) cell protein impurities in antibody drug products. The incomplete annotation of the Chinese hamster genome, however, limits the coverage of MS-based host cell protein (HCP) analysis.</p> &nbsp;
 
 <p style='text-align: justify;'>
-In this study, we performed ribosome footprint profiling (Ribo-seq) of translation initiation and elongation to refine the Chinese hamster genome annotation. Analysis of these data resulted in the identification of thousands of previously uncharacterised non-canonical proteoforms in CHO cells, such as N-terminally extended proteins and short open reading frames (sORFs) predicted to encode for microproteins. MS-based HCP analysis of adalimumab and trastuzumab with the extended protein sequence database, resulted in the detection of CHO cell microprotein impurities in mAb drug product for the first time. Further analysis revealed that the CHO cell microprotein population is altered over the course of cell culture and, in response to a change in cell culture temperature. The annotation of non-canonical Chinese hamster proteoforms permits a more comprehensive characterisation of HCPs in antibody drug products using MS.
+Chinese hamster ovary (CHO) cells are used to produce almost 90% of therapeutic monoclonal antibodies (mAbs). The annotation of non-canonical translation events in these cellular factories remains incomplete, limiting not only our ability to study CHO cell biology but also detect host cell protein (HCP) contaminants in the final mAb drug product. We utilised ribosome footprint profiling (Ribo-seq) to identify novel open reading frames (ORFs) including N-terminal extensions and thousands of short ORFs (sORFs) predicted to encode microproteins. Mass spectrometry-based HCP analysis of four commercial mAb drug products using the extended protein sequence database revealed the presence of microprotein impurities for the first time. We also show that microprotein abundance varies with growth phase and can be affected by the cell culture environment. In addition, our work provides a vital resource to facilitate future studies of non-canonical translation as well as the regulation of protein synthesis in CHO cell lines.
 </p>
 &nbsp;
 
